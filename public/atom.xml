@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Agocs]]></title>
+  <link href="agocs.org/atom.xml" rel="self"/>
+  <link href="agocs.org/"/>
+  <updated>2014-03-14T16:10:19-05:00</updated>
+  <id>agocs.org/</id>
+  <author>
+    <name><![CDATA[Christopher Agocs]]></name>
+    <email><![CDATA[chris@agocs.org]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+</feed>

@@ -1,0 +1,170 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+	<script data-cfasync="false" type="text/javascript" src="//use.typekit.net/axj3cfp.js"></script>
+	<script data-cfasync="false" type="text/javascript">try{Typekit.load();}catch(e){}</script>
+	<meta charset="utf-8">
+	<title>How to UrlEncode a String in C# using .Net 4.0 or less  | Agocs</title>
+
+<meta name="author" content="Christopher Agocs"> 
+
+<meta name="description" content="Sometimes I blog stuff"> <meta name="keywords" content="">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="Agocs" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.png" rel="shortcut icon">
+	<link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script type="text/javascript" src="/javascripts/jquery.fancybox.pack.js"></script>
+
+<script language="Javascript" type="text/javascript">
+$(document).ready(
+  function() {
+    (function($) {
+      $(".fancybox[data-content-id]").each(function() {
+        this.href = $(this).data('content-id');
+      });
+      $(".fancybox").fancybox({
+        beforeLoad: function() {
+          var el, 
+              id = $(this.element).data('title-id');
+
+          if (id) {
+            el = $('#' + id);
+
+            if (el.length) {
+              this.title = el.html();
+            }
+          }
+          if ($(this).data('content')) {
+            this.content = $(this).data('content');
+          }
+        },
+        helpers: {
+          title: {
+            type: 'inside'
+          }
+        }
+      });
+    })(jQuery);
+  }
+);
+</script>
+
+	
+</head>
+
+
+<body>
+	<header id="header" class="inner"><h1><a href="/">Agocs</a></h1>
+<h4>Christopher Agocs</h4>
+<nav id="main-nav"><ul>
+	<li><a href="/">Blog</a></li>
+	<li><a href="/social-media">Contact + Social Media</a></li>
+	<li><a href="/resume">Resume</a></li>
+	<li><a href="/projects">Projects</a></li>
+	<li><a href="/archives">Archive</a></li>
+</ul>
+</nav>
+<nav id="mobile-nav">
+	<div class="alignleft menu">
+		<a class="button">Menu</a>
+		<div class="container"><ul>
+	<li><a href="/">Blog</a></li>
+	<li><a href="/social-media">Contact + Social Media</a></li>
+	<li><a href="/resume">Resume</a></li>
+	<li><a href="/projects">Projects</a></li>
+	<li><a href="/archives">Archive</a></li>
+</ul>
+</div>
+	</div>
+	<div class="alignright search">
+		<a class="button"></a>
+		<div class="container">
+			<form action="http://google.com/search" method="get">
+				<input type="text" name="q" results="0">
+				<input type="hidden" name="q" value="site:agocs.org">
+			</form>
+		</div>
+	</div>
+</nav>
+
+
+</header>
+
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">How to UrlEncode a String in C# Using .Net 4.0 or Less</h2>
+	<div class="entry-content"><p>The boffins over at Microsoft added a handy method to .Net 4.5: <a href="http://msdn.microsoft.com/en-us/library/system.net.webutility.urlencode.aspx">Webutility.UrlEncode</a>. Unfortunately for those of us who don&rsquo;t have Visual Studio 2012, we can&rsquo;t use it! How then can we properly encode strings for use in URLs?</p>
+
+<p>(What do I mean? Let&rsquo;s say I want to pass a URL inside another URL as an argument. So, for example, I want to pass <a href="http://www.bar.com/?a=b&amp;c=d%C2%A0_as">http://www.bar.com/?a=b&amp;c=d%C2%A0_as</a> a query string variable_ to foo.com. I&rsquo;d want the following URL: <a href="http://foo.com/?url=http%3A//www.bar.com/%3Fa%3Db%26c%3Dd">http://foo.com/?url=http%3A//www.bar.com/%3Fa%3Db%26c%3Dd</a>  )</p>
+
+<p>Here&rsquo;s how I did it:</p>
+
+<p>I start by instantiating a StringBuilder with assumed length of 100 (I&rsquo;m not going to create a URL much longer than 100 characters, am I?). Then, for each character in the input URL, I call the replace(char c) function. Replace returns the string that the character <em>should</em> be, and that value gets appended to the StringBuilder. When we&rsquo;re done, the StringBuilder spits out the string.</p>
+
+<p>I thought about doing an in-place replace, but that would have lead to a lot of shuffling within the string. My intuition told me the runtime would be somewhere along the lines of O(n<sup>2</sup>). I also thought about chaining a bunch of String.replace().replace().replace()&hellip; calls together, but that would have been a mess as well as a slow performer.</p>
+
+<p>I wound up traded some space for time (yes, I am initializing a bunch of Strings), but I&rsquo;m effectively performing this encoding in O(n) time.</p>
+</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-23T13:44:49-05:00" pubdate data-updated="true">Apr 23<span>rd</span>, 2013</time></div>
+	
+
+
+	
+</div></article>
+
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	<a class="addthis_button_tweet"></a>
+	
+	
+<!---	<a class="addthis_counter addthis_pill_style"></a> --->
+	</div>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
+
+
+</div>
+	<footer id="footer" class="inner">Copyright &copy; 2014
+
+    Christopher Agocs
+
+<br>
+Powered by Octopress.
+</footer>
+	<script src="/javascripts/slash.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
+
+
+
+
+
+
+</body>
+</html>

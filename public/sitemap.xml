@@ -1,28 +1,92 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
-        <loc>agocs.org/about/</loc>
-        <lastmod>2014-03-14T16:06:14-05:00</lastmod>
+        <loc>agocs.org/blog/2013/03/31/radiosmack/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/03/hey-chris-agocs-click-this/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/04/first-arduino-project/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/08/i-get-tdd/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/17/cast-iron-skillet-pizza/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/17/box-fan-beef-jerky-part-1/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/22/box-fan-beef-jerky-part-2/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/04/23/how-to-urlencode-a-string-in-c-using-net-4-0-or-less/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/05/04/mergesort-spices/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/05/07/reverse-engineering-doubleclick-ad-statistics-part-1/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/05/17/reverse-engineering-doubleclick-part-ii/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/07/21/how-to-disable-capslock-at-the-hardware-level/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/08/09/moving-a-post-mortem/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/blog/2013/09/10/cold-brew-coffee-try-1/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
     </url>
     <url>
         <loc>agocs.org/archives/</loc>
-        <lastmod>2014-03-14T16:06:14-05:00</lastmod>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
     </url>
     <url>
         <loc>agocs.org/blog/archives/</loc>
-        <lastmod>2014-03-14T16:09:11-05:00</lastmod>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
     </url>
     <url>
         <loc>agocs.org/blog/</loc>
-        <lastmod>2014-03-14T16:09:11-05:00</lastmod>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
     </url>
     <url>
         <loc>agocs.org/</loc>
-        <lastmod>2014-03-14T16:06:14-05:00</lastmod>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/projects/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/resume/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
     </url>
     <url>
         <loc>agocs.org/robots.txt</loc>
         <lastmod>2014-03-14T16:06:14-05:00</lastmod>
+    </url>
+    <url>
+        <loc>agocs.org/social-media/</loc>
+        <lastmod>2014-03-14T16:29:09-05:00</lastmod>
     </url>
     <url>
         <loc>agocs.org/wedding-info/</loc>

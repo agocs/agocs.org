@@ -1,0 +1,232 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+	<script data-cfasync="false" type="text/javascript" src="//use.typekit.net/axj3cfp.js"></script>
+	<script data-cfasync="false" type="text/javascript">try{Typekit.load();}catch(e){}</script>
+	<meta charset="utf-8">
+	<title>Reverse Engineering Doubleclick Ad Statistics (Part 1)  | Agocs</title>
+
+<meta name="author" content="Christopher Agocs"> 
+
+<meta name="description" content="Sometimes I blog stuff"> <meta name="keywords" content="">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="Agocs" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.png" rel="shortcut icon">
+	<link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script type="text/javascript" src="/javascripts/jquery.fancybox.pack.js"></script>
+
+<script language="Javascript" type="text/javascript">
+$(document).ready(
+  function() {
+    (function($) {
+      $(".fancybox[data-content-id]").each(function() {
+        this.href = $(this).data('content-id');
+      });
+      $(".fancybox").fancybox({
+        beforeLoad: function() {
+          var el, 
+              id = $(this.element).data('title-id');
+
+          if (id) {
+            el = $('#' + id);
+
+            if (el.length) {
+              this.title = el.html();
+            }
+          }
+          if ($(this).data('content')) {
+            this.content = $(this).data('content');
+          }
+        },
+        helpers: {
+          title: {
+            type: 'inside'
+          }
+        }
+      });
+    })(jQuery);
+  }
+);
+</script>
+
+	
+</head>
+
+
+<body>
+	<header id="header" class="inner"><h1><a href="/">Agocs</a></h1>
+<h4>Christopher Agocs</h4>
+<nav id="main-nav"><ul>
+	<li><a href="/">Blog</a></li>
+	<li><a href="/social-media">Contact + Social Media</a></li>
+	<li><a href="/resume">Resume</a></li>
+	<li><a href="/projects">Projects</a></li>
+	<li><a href="/archives">Archive</a></li>
+</ul>
+</nav>
+<nav id="mobile-nav">
+	<div class="alignleft menu">
+		<a class="button">Menu</a>
+		<div class="container"><ul>
+	<li><a href="/">Blog</a></li>
+	<li><a href="/social-media">Contact + Social Media</a></li>
+	<li><a href="/resume">Resume</a></li>
+	<li><a href="/projects">Projects</a></li>
+	<li><a href="/archives">Archive</a></li>
+</ul>
+</div>
+	</div>
+	<div class="alignright search">
+		<a class="button"></a>
+		<div class="container">
+			<form action="http://google.com/search" method="get">
+				<input type="text" name="q" results="0">
+				<input type="hidden" name="q" value="site:agocs.org">
+			</form>
+		</div>
+	</div>
+</nav>
+
+
+</header>
+
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">Reverse Engineering Doubleclick Ad Statistics (Part 1)</h2>
+	<div class="entry-content"><p>One of the projects I&rsquo;m on seeks to proxy web beacons. Basically, I have a WSGI app that serves a 1x1 px gif, and then triggers a Celery app that goes out and actually &ldquo;clicks&rdquo; on the intended web beacon. During preliminary load testing with a Doubleclick beacon (actually a Doubleclick link counter), we discovered that requesting that beacon 1000 times in 5 minutes (one request ever 1/3 second) only reported around 30 &ldquo;clicks.&rdquo; We&rsquo;ve been throwing tests at Doubleclick to see what it reports under different scenarios:</p>
+
+<ul>
+<li><p>1000 clicks evenly distributed over 5 minutes: 30 clicks</p></li>
+<li><p>1000 clicks chunked into 50 groups of 20 (I misunderstood how JMeter works): 50 clicks</p></li>
+<li><p>300 clicks over an hour (1 per 12 seconds): 300 clicks</p></li>
+<li><p>500 clicks with spoofed User_agent strings (1 per 12 seconds): 500 clicks</p></li>
+</ul>
+
+
+<p>So it appears that Doubleclick has a &ldquo;cooldown&rdquo; between clicks and doesn&rsquo;t really care about the User_agent. How long is that cooldown? We know it&rsquo;s greater than 1/3 second and less than 12 seconds.</p>
+
+<p>Today, I&rsquo;m running a test that looks like this:</p>
+
+<p><strong>Number of clicks</strong></p>
+
+<p><strong>Rate of clicks</strong></p>
+
+<p><strong>Delay between clicks</strong></p>
+
+<p><strong>Total time</strong></p>
+
+<p>10240</p>
+
+<p>240 per minute</p>
+
+<p>.25 seconds</p>
+
+<p>2560 s (42.6m)</p>
+
+<p>5120</p>
+
+<p>120 per minute</p>
+
+<p>.5 seconds</p>
+
+<p>2560 s (42.6m)</p>
+
+<p>2560</p>
+
+<p>80 per minute</p>
+
+<p>.75 seconds</p>
+
+<p>1920 s (32m)</p>
+
+<p>1280</p>
+
+<p>40 per minute</p>
+
+<p>1.5 seconds</p>
+
+<p>1920 s (32m)****</p>
+
+<p>640</p>
+
+<p>20 per minute</p>
+
+<p>3 seconds</p>
+
+<p>1920 s (32m)</p>
+
+<p>320</p>
+
+<p>10 per minute</p>
+
+<p>6 seconds</p>
+
+<p>1920 s (32m)</p>
+
+<p>By taking the total number of clicks recorded today (which I&rsquo;ll know tomorrow), I&rsquo;ll be able to start approximating the cooldown (for example, if I see 2240 and change clicks, I&rsquo;ll know that the cooldown is between 1.5 and .75 seconds).</p>
+
+<p>Will update later.</p>
+</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-07T12:44:16-05:00" pubdate data-updated="true">May 7<span>th</span>, 2013</time></div>
+	
+
+
+	
+</div></article>
+
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	<a class="addthis_button_tweet"></a>
+	
+	
+<!---	<a class="addthis_counter addthis_pill_style"></a> --->
+	</div>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
+
+
+</div>
+	<footer id="footer" class="inner">Copyright &copy; 2014
+
+    Christopher Agocs
+
+<br>
+Powered by Octopress.
+</footer>
+	<script src="/javascripts/slash.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
+
+
+
+
+
+
+</body>
+</html>

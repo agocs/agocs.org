@@ -102,6 +102,112 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
+		<a href="/blog/2013/04/23/how-to-urlencode-a-string-in-c-using-net-4-0-or-less/">
+		
+			How to UrlEncode a String in C# Using .Net 4.0 or Less</a>
+	</h2>
+	<div class="entry-content">
+		<p>The boffins over at Microsoft added a handy method to .Net 4.5: <a href="http://msdn.microsoft.com/en-us/library/system.net.webutility.urlencode.aspx">Webutility.UrlEncode</a>. Unfortunately for those of us who don&rsquo;t have Visual Studio 2012, we can&rsquo;t use it! How then can we properly encode strings for use in URLs?</p>
+
+<p>(What do I mean? Let&rsquo;s say I want to pass a URL inside another URL as an argument. So, for example, I want to pass <a href="http://www.bar.com/?a=b&amp;c=d%C2%A0_as">http://www.bar.com/?a=b&amp;c=d%C2%A0_as</a> a query string variable_ to foo.com. I&rsquo;d want the following URL: <a href="http://foo.com/?url=http%3A//www.bar.com/%3Fa%3Db%26c%3Dd">http://foo.com/?url=http%3A//www.bar.com/%3Fa%3Db%26c%3Dd</a>  )</p>
+
+<p>Here&rsquo;s how I did it:</p>
+
+<p>I start by instantiating a StringBuilder with assumed length of 100 (I&rsquo;m not going to create a URL much longer than 100 characters, am I?). Then, for each character in the input URL, I call the replace(char c) function. Replace returns the string that the character <em>should</em> be, and that value gets appended to the StringBuilder. When we&rsquo;re done, the StringBuilder spits out the string.</p>
+
+<p>I thought about doing an in-place replace, but that would have lead to a lot of shuffling within the string. My intuition told me the runtime would be somewhere along the lines of O(n<sup>2</sup>). I also thought about chaining a bunch of String.replace().replace().replace()&hellip; calls together, but that would have been a mess as well as a slow performer.</p>
+
+<p>I wound up traded some space for time (yes, I am initializing a bunch of Strings), but I&rsquo;m effectively performing this encoding in O(n) time.</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-23T13:44:49-05:00" pubdate data-updated="true">Apr 23<span>rd</span>, 2013</time></div>
+	
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/04/22/box-fan-beef-jerky-part-2/">
+		
+			Box Fan Beef Jerky, Part 2</a>
+	</h2>
+	<div class="entry-content">
+		<p>In <a href="http://www.agocs.org/box-fan-beef-jerky-part-1/">this post</a>, I started making box fan beef jerky. If you can&rsquo;t remember where I was when I left off, go take a peek.</p>
+
+<p>Okay, so. The meat sat in the marinade overnight, and come morning I loaded it onto a 20&#8221; by 20&#8221; HVAC filter, courtesy of The Home Depot.</p>
+
+<p><a href="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_07-32-50_747.jpg"><img src="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_07-32-50_747-300x168.jpg" alt="" /></a></p>
+
+<p>The cats were very interested.</p>
+
+<p><a href="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_07-32-55_320.jpg"><img src="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_07-32-55_320-300x168.jpg" alt="2013-04-18_07-32-55_320" /></a></p>
+
+<p>I assembled the filters and strapped them to the fan.</p>
+
+<p><a href="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_19-22-01_231.jpg"><img src="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_19-22-01_231-300x168.jpg" alt="2013-04-18_19-22-01_231" /></a></p>
+
+<p>The cats were very interested.</p>
+
+<p><a href="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_07-37-39_570.jpg"><img src="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_07-37-39_570-300x170.jpg" alt="2013-04-18_07-37-39_570" /></a></p>
+
+<p>Here&rsquo;s what it looked like after a day at work:</p>
+
+<p><a href="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_22-29-49_87.jpg"><img src="http://www.agocs.org/wp-content/uploads/2013/04/2013-04-18_22-29-49_87-300x168.jpg" alt="2013-04-18_22-29-49_87" /></a></p>
+
+<p>Tasty, but not properly preserved. I cut up the pieces too thick, originally. The above picture is after re-cutting, and before re-drying overnight.</p>
+
+<p>I don&rsquo;t have any pictures of the next morning, but the results are good. The jerky had a nice, mellow flavor, and has kept in a tupperware on the counter over the course of the week. Sabrina put the bug in my head to make Sriracha beef jerky&hellip; guess what I&rsquo;m doing this weekend!</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-22T21:19:20-05:00" pubdate data-updated="true">Apr 22<span>nd</span>, 2013</time></div>
+	
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
 		<a href="/blog/2013/04/17/box-fan-beef-jerky-part-1/">
 		
 			Box Fan Beef Jerky, Part 1</a>

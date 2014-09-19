@@ -104,6 +104,84 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
+		<a href="/blog/2014/09/19/agox-connectors/">
+		
+			AGOX Connectors</a>
+	</h2>
+	<div class="entry-content">
+		<h3>Or, how we hacked reality</h3>
+
+<p>This is an eight-pin AGOX connector:</p>
+
+<p><img src="http://i.imgur.com/NHrH5hOl.jpg"></p>
+
+<p>In September of 2008, I was a student at the Georgia Institute of Technology and heavily involved in the <a href="http://www.wrek.org">WREK</a> radio station.One of my good friends at the time was <a href="http://centrisian.com/">Robert Wright</a>. My &ldquo;initials&rdquo; (how we logged in, signed up for shifts, etc.) at the radio station were &ldquo;AGOX&rdquo;, and I signed all my emails that way. One afternoon, Robert pointed me toward the Wikipedia Talk page for USB: specifically at a section called <a href="http://en.wikipedia.org/wiki/Talk:USB/Archive_4#Mystery_micro_plug">Mystery Micro Plug</a>. At the bottom, he wrote:</p>
+
+<blockquote><p>Based on personal knowledge, and having worked in the field for a few years, the &lsquo;Mystery Plug&rsquo; is internally named the &lsquo;Agox connector&rsquo; when used in combination with digital cameras. We refer to them this way because of the gentleman with whom I worked. 128.61.120.190 (talk) 22:49, 23 September 2008 (UTC)</p></blockquote>
+
+<p>I thought it was funny, so I replied.</p>
+
+<blockquote><p>I think I remember seeing it called the &lsquo;Agox Connector&rsquo; in Nikon documentation somewhere. I always wondered why. 128.61.69.123 (talk) 22:56, 23 September 2008 (UTC)</p></blockquote>
+
+<p>It would have died at this point if another Wikipedia editor hadn&rsquo;t gotten involved.</p>
+
+<blockquote><p>Hmmm&hellip; very interesting. Do you have a reference for it anywhere??? ǝɹʎℲxoɯ (contrib) 06:33, 24 September 2008 (UTC)</p></blockquote>
+
+<p>Well&hellip; One good lie begets another. Rob said:</p>
+
+<blockquote><p>I&rsquo;m no longer working there, but I could possibly try to get some documents from people who still work there. 128.61.120.190 (talk) 09:32, 24 September 2008 (UTC)</p></blockquote>
+
+<p>And then, a few days later, he said:</p>
+
+<blockquote><p>So, after having asked around, I&rsquo;ve learned that the connector&rsquo;s internal name of &lsquo;Agox&rsquo; is on some documentation that we haven&rsquo;t released to the public yet. The name is perfectly fine to use for the article, but the Nikon documents cannot be released. If I could cite them here, I would, but alas, I am still bound not to release the information behind this. 24.98.65.137 (talk) 04:48, 30 September 2008 (UTC)</p></blockquote>
+
+<p>Finally, about a month later, I came up with the most ridiculous thing I could imagine.</p>
+
+<blockquote><p>It stands for Asynchronous Gamma-Object Transfer (x=trans). In Nikon&rsquo;s logical model, the alpha object acts as a server, the beta object acts as a client, and data that flows between the two are considered gamma objects. There are delta and epsilon objects as well, but those are too small to get into. 128.61.69.123 (talk) 23:27, 21 October 2008 (UTC)</p></blockquote>
+
+<p>We left it at that. A few months later, Rob pointed me back at the main USB article. I scrolled through and saw this:</p>
+
+<p><img src="http://i.imgur.com/usgXmpCl.png"></p>
+
+<p>We&rsquo;d done it! Someone took our lies and made them reality! It didn&rsquo;t stop there. You could find Chinese companies selling AGOX cables and AGOX connectors, people mentioned AGOX connectors on forums, one guy even wrote a blog post about an AGOX to regular USB converter he made.</p>
+
+<p>All good things must come to an end, and, rightly so, AGOX Connector got edited away. Wikipedia currently calls it a &ldquo;UC-E6 proprietary (non-USB) plug&rdquo;, but, in my heart of hearts, I know what it really is.</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-09-19T10:23:41-05:00" pubdate data-updated="true">Sep 19<span>th</span>, 2014</time></div>
+	
+
+<div class="tags">
+
+	<a class='category' href='/blog/categories/hack/'>hack,</a>, <a class='category' href='/blog/categories/history/'>history</a>, <a class='category' href='/blog/categories/prank/'>prank,</a>
+
+</div>
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
 		<a href="/blog/2014/09/15/telescope-update/">
 		
 			Telescope Update</a>
@@ -844,7 +922,7 @@ smtp 10800 IN CNAME relay.mail.gandi.net.
 @ 10800 IN MX 10 spool.mail.gandi.net.
 </code></pre>
 
-<p>The lines below were cribbed from Gandi.net&rsquo;s default Zone file. <a href="&#x6d;&#97;&#105;&#108;&#116;&#x6f;&#x3a;&#99;&#x68;&#114;&#105;&#115;&#x40;&#x61;&#x67;&#111;&#99;&#x73;&#x2e;&#111;&#114;&#x67;">&#99;&#x68;&#114;&#105;&#115;&#x40;&#97;&#x67;&#x6f;&#x63;&#x73;&#x2e;&#x6f;&#x72;&#103;</a> worked, but agocs.org did not. I did some research and then made the following change:</p>
+<p>The lines below were cribbed from Gandi.net&rsquo;s default Zone file. <a href="&#109;&#x61;&#105;&#108;&#116;&#x6f;&#x3a;&#x63;&#104;&#x72;&#x69;&#115;&#64;&#97;&#103;&#111;&#x63;&#x73;&#x2e;&#x6f;&#x72;&#x67;">&#99;&#x68;&#x72;&#x69;&#115;&#x40;&#x61;&#103;&#111;&#x63;&#x73;&#46;&#x6f;&#114;&#103;</a> worked, but agocs.org did not. I did some research and then made the following change:</p>
 
 <pre><code>* 10800 IN A 162.243.76.63
 @ 10800 IN A 162.243.76.63
@@ -880,50 +958,6 @@ smtp 10800 IN CNAME relay.mail.gandi.net.
 
 
 <time datetime="2014-04-15T16:53:19-05:00" pubdate data-updated="true">Apr 15<span>th</span>, 2014</time></div>
-	
-
-
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2014/03/18/someone-stole-the-t/">
-		
-			Someone Stole the T</a>
-	</h2>
-	<div class="entry-content">
-		<p>Hoooooly shit! Somebody did it! Somebody stole the T!</p>
-
-<p><a href="http://agocs.smugmug.com/Other/misc/29939745_7n8ptc#!i=3129590478&k=9sKRVBF&lb=1&s=A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/misc/i-9sKRVBF/0/L/Ech-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
-
-<p>Haha, awesome!</p>
-
-<p><a href="http://agocs.smugmug.com/Other/misc/29939745_7n8ptc#!i=3129921045&k=c3jWCmv&lb=1&s=A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/misc/i-c3jWCmv/0/L/Ech3-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
-
-<p>Whoever did this, bravo! Bra-vo! I hope they let you graduate.</p>
-
-		
-		
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-18T13:17:14-05:00" pubdate data-updated="true">Mar 18<span>th</span>, 2014</time></div>
 	
 
 

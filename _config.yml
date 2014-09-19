@@ -2,7 +2,7 @@
 #      Main Configs       #
 # ----------------------- #
 
-url: agocs.org
+url: http://agocs.org
 title: Agocs
 subtitle: Christopher Agocs
 author: Christopher Agocs
@@ -90,7 +90,7 @@ delicious_user:
 delicious_count: 3
 
 # Disqus Comments
-disqus_short_name:
+disqus_short_name: agocs
 disqus_show_comment_count: false
 
 # Google Analytics

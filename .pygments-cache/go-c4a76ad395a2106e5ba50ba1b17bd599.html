@@ -1,0 +1,12 @@
+<div class="highlight"><pre><span class="nx">autoAck</span> <span class="o">:=</span> <span class="kc">false</span>
+
+<span class="nx">msgs</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">channel</span><span class="p">.</span><span class="nx">Consume</span><span class="p">(</span><span class="nx">q</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">,</span> <span class="nx">autoAck</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+	<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="nx">d</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">msgs</span> <span class="p">{</span>
+	<span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="nb">string</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">Body</span><span class="p">[:]))</span>
+	<span class="nx">d</span><span class="p">.</span><span class="nx">Ack</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
+<span class="p">}</span> 
+</pre></div>

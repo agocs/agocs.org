@@ -8,7 +8,7 @@ categories: golang
 
 Hey everybody, check out this intro to the Go programming language I put together for a talk at Backstop the other week!
 
-[Golang Slides](http://go-talks.appspot.com/github.com/camerazn/GolangIntro/golangIntro.slide#1 "Hosted on go-talks.appspot.com")
+[Golang Slides](http://go-talks.appspot.com/github.com/agocs/GolangIntro/golangIntro.slide#1)
 
 I tried to keep the slides content-light, since I find that having too many things on the screen distracts from what I'm saying. I'll recapitulate my notes below.
 

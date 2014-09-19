@@ -1,0 +1,17 @@
+<div class="highlight"><pre>	<span class="nx">channel</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="nx">q</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="nx">amqp</span><span class="p">.</span><span class="nx">Publishing</span><span class="p">{</span>
+		<span class="nx">Headers</span><span class="p">:</span>         <span class="nx">amqp</span><span class="p">.</span><span class="nx">Table</span><span class="p">{},</span>
+		<span class="nx">ContentType</span><span class="p">:</span>     <span class="s">&quot;text/plain&quot;</span><span class="p">,</span>
+		<span class="nx">ContentEncoding</span><span class="p">:</span> <span class="s">&quot;UTF-8&quot;</span><span class="p">,</span>
+		<span class="nx">Body</span><span class="p">:</span>            <span class="nx">messageJson</span><span class="p">,</span>
+		<span class="nx">DeliveryMode</span><span class="p">:</span>    <span class="nx">amqp</span><span class="p">.</span><span class="nx">Transient</span><span class="p">,</span>
+		<span class="nx">Priority</span><span class="p">:</span>        <span class="mi">0</span><span class="p">,</span>
+	<span class="p">},</span>
+	<span class="p">)</span>
+
+	<span class="k">select</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="nx">tag</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">ack</span><span class="p">:</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Acked &quot;</span><span class="p">,</span> <span class="nx">tag</span><span class="p">)</span>
+	<span class="k">case</span> <span class="nx">tag</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">nack</span><span class="p">:</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Nack alert! &quot;</span><span class="p">,</span> <span class="nx">tag</span><span class="p">)</span>
+	<span class="p">}</span>
+</pre></div>

@@ -1,24 +1,106 @@
-<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: hack, | Agocs]]></title>
-  <link href="http://agocs.org/blog/categories/hack/atom.xml" rel="self"/>
-  <link href="http://agocs.org/"/>
-  <updated>2015-09-04T14:23:33-05:00</updated>
-  <id>http://agocs.org/</id>
-  <author>
-    <name><![CDATA[Christopher Agocs]]></name>
-    <email><![CDATA[chris@agocs.org]]></email>
-  </author>
-  <generator uri="http://octopress.org/">Octopress</generator>
+<!DOCTYPE HTML>
+<html>
+<head>
+	<script data-cfasync="false" type="text/javascript" src="//use.typekit.net/axj3cfp.js"></script>
+	<script data-cfasync="false" type="text/javascript">try{Typekit.load();}catch(e){}</script>
+	<meta charset="utf-8">
+	<title>Introducing Uluru  | Agocs</title>
 
-  
-  <entry>
-    <title type="html"><![CDATA[Introducing Uluru]]></title>
-    <link href="http://agocs.org/blog/2015/08/20/introducing-uluru/"/>
-    <updated>2015-08-20T15:46:16-05:00</updated>
-    <id>http://agocs.org/blog/2015/08/20/introducing-uluru</id>
-    <content type="html"><![CDATA[<p><img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Uluru_Panorama.jpg" /></p>
+<meta name="author" content="Christopher Agocs"> 
+
+<meta name="description" content="Sometimes I blog stuff"> <meta name="keywords" content="">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="Agocs" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.png" rel="shortcut icon">
+	<link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script type="text/javascript" src="/javascripts/jquery.fancybox.pack.js"></script>
+
+<script language="Javascript" type="text/javascript">
+$(document).ready(
+  function() {
+    (function($) {
+      $(".fancybox[data-content-id]").each(function() {
+        this.href = $(this).data('content-id');
+      });
+      $(".fancybox").fancybox({
+        beforeLoad: function() {
+          var el, 
+              id = $(this.element).data('title-id');
+
+          if (id) {
+            el = $('#' + id);
+
+            if (el.length) {
+              this.title = el.html();
+            }
+          }
+          if ($(this).data('content')) {
+            this.content = $(this).data('content');
+          }
+        },
+        helpers: {
+          title: {
+            type: 'inside'
+          }
+        }
+      });
+    })(jQuery);
+  }
+);
+</script>
+
+	
+</head>
+
+
+<body>
+	<header id="header" class="inner"><h1><a href="/">Agocs</a></h1>
+<h4>Christopher Agocs</h4>
+<nav id="main-nav"><ul>
+	<li><a href="/">Blog</a></li>
+	<li><a href="/social-media">Contact + Social Media</a></li>
+	<li><a href="/resume">Resume</a></li>
+	<li><a href="/projects">Projects</a></li>
+	<li><a href="/archives">Archive</a></li>
+	<li><a href="/robotfindskitten/non-kitten-item/">Robot Finds Kitten</a></li>
+</ul>
+</nav>
+<nav id="mobile-nav">
+	<div class="alignleft menu">
+		<a class="button">Menu</a>
+		<div class="container"><ul>
+	<li><a href="/">Blog</a></li>
+	<li><a href="/social-media">Contact + Social Media</a></li>
+	<li><a href="/resume">Resume</a></li>
+	<li><a href="/projects">Projects</a></li>
+	<li><a href="/archives">Archive</a></li>
+	<li><a href="/robotfindskitten/non-kitten-item/">Robot Finds Kitten</a></li>
+</ul>
+</div>
+	</div>
+	<div class="alignright search">
+		<a class="button"></a>
+		<div class="container">
+			<form action="http://google.com/search" method="get">
+				<input type="text" name="q" results="0">
+				<input type="hidden" name="q" value="site:agocs.org">
+			</form>
+		</div>
+	</div>
+</nav>
+
+
+</header>
+
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">Introducing Uluru</h2>
+	<div class="entry-content"><p><img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Uluru_Panorama.jpg" /></p>
 
 <p>![Uluru / Ayers Rock: a large sandstone rock formation in the southern part of the Northern Territory, in central Australia] (<a href="https://upload.wikimedia.org/wikipedia/commons/3/3e/Uluru_Panorama.jpg">https://upload.wikimedia.org/wikipedia/commons/3/3e/Uluru_Panorama.jpg</a>)</p>
 
@@ -119,52 +201,90 @@
 <h2>Further directions</h2>
 
 <p>Currently, the Uluru project includes some stub code for a generic REST endpoint. I want to flush this out into something that writes logs for splunkd or logstash, or forwards data to services like Sensu or Reimann.</p>
-]]></content>
-  </entry>
+</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
   
-  <entry>
-    <title type="html"><![CDATA[AGOX Connectors]]></title>
-    <link href="http://agocs.org/blog/2014/09/19/agox-connectors/"/>
-    <updated>2014-09-19T10:23:41-05:00</updated>
-    <id>http://agocs.org/blog/2014/09/19/agox-connectors</id>
-    <content type="html"><![CDATA[<h3>Or, how we hacked reality</h3>
 
-<p>This is an eight-pin AGOX connector:</p>
 
-<p><img src="http://i.imgur.com/NHrH5hOl.jpg"></p>
+<time datetime="2015-08-20T15:46:16-05:00" pubdate data-updated="true">Aug 20<span>th</span>, 2015</time></div>
+	
 
-<p>In September of 2008, I was a student at the <a href="http://www.gatech.edu">North Avenue Trade School</a> and heavily involved in the <a href="http://www.wrek.org">WREK</a> radio station. One of my good friends at the time was <a href="http://centrisian.com/">Robert Wright</a>. My &ldquo;initials&rdquo; (how we logged in, signed up for shifts, etc.) at the radio station were &ldquo;AGOX&rdquo;, and I signed all my emails that way. One afternoon, Robert pointed me toward the Wikipedia Talk page for USB: specifically at a section called <a href="http://en.wikipedia.org/wiki/Talk:USB/Archive_4#Mystery_micro_plug">Mystery Micro Plug</a>. At the bottom, he wrote:</p>
+<div class="tags">
 
-<blockquote><p>Based on personal knowledge, and having worked in the field for a few years, the &lsquo;Mystery Plug&rsquo; is internally named the &lsquo;Agox connector&rsquo; when used in combination with digital cameras. We refer to them this way because of the gentleman with whom I worked. 128.61.120.190 (talk) 22:49, 23 September 2008 (UTC)</p></blockquote>
+	<a class='category' href='/blog/categories/hack/'>hack,</a>, <a class='category' href='/blog/categories/programming/'>programming</a>
 
-<p>I thought it was funny, so I replied.</p>
+</div>
 
-<blockquote><p>I think I remember seeing it called the &lsquo;Agox Connector&rsquo; in Nikon documentation somewhere. I always wondered why. 128.61.69.123 (talk) 22:56, 23 September 2008 (UTC)</p></blockquote>
 
-<p>It would have died at this point if another Wikipedia editor hadn&rsquo;t gotten involved.</p>
+	
+</div></article>
 
-<blockquote><p>Hmmm&hellip; very interesting. Do you have a reference for it anywhere??? ǝɹʎℲxoɯ (contrib) 06:33, 24 September 2008 (UTC)</p></blockquote>
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	<a class="addthis_button_tweet"></a>
+	
+	
+<!---	<a class="addthis_counter addthis_pill_style"></a> --->
+	</div>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
 
-<p>Well&hellip; One good lie begets another. Rob said:</p>
 
-<blockquote><p>I&rsquo;m no longer working there, but I could possibly try to get some documents from people who still work there. 128.61.120.190 (talk) 09:32, 24 September 2008 (UTC)</p></blockquote>
 
-<p>And then, a few days later, he said:</p>
+<section id="comment">
+    <h2 class="title">Comments</h2>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
+</div>
+	<footer id="footer" class="inner">Copyright &copy; 2015
 
-<blockquote><p>So, after having asked around, I&rsquo;ve learned that the connector&rsquo;s internal name of &lsquo;Agox&rsquo; is on some documentation that we haven&rsquo;t released to the public yet. The name is perfectly fine to use for the article, but the Nikon documents cannot be released. If I could cite them here, I would, but alas, I am still bound not to release the information behind this. 24.98.65.137 (talk) 04:48, 30 September 2008 (UTC)</p></blockquote>
+    Christopher Agocs
 
-<p>Finally, about a month later, I came up with the most ridiculous thing I could imagine.</p>
+<br>
+Powered by Octopress.
+</footer>
+	<script src="/javascripts/slash.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
 
-<blockquote><p>It stands for Asynchronous Gamma-Object Transfer (x=trans). In Nikon&rsquo;s logical model, the alpha object acts as a server, the beta object acts as a client, and data that flows between the two are considered gamma objects. There are delta and epsilon objects as well, but those are too small to get into. 128.61.69.123 (talk) 23:27, 21 October 2008 (UTC)</p></blockquote>
 
-<p>We left it at that. A few months later, Rob pointed me back at the main USB article. I scrolled through and saw this:</p>
+<script type="text/javascript">
+      var disqus_shortname = 'agocs';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://agocs.org/blog/2015/08/20/introducing-uluru/';
+        var disqus_url = 'http://agocs.org/blog/2015/08/20/introducing-uluru/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
 
-<p><img src="http://i.imgur.com/usgXmpCl.png"></p>
 
-<p>We&rsquo;d done it! Someone took our lies and made them reality! It didn&rsquo;t stop there. You could find Chinese companies selling AGOX cables and AGOX connectors, people mentioned AGOX connectors on forums, one guy even wrote a blog post about an AGOX to regular USB converter he made.</p>
 
-<p>All good things must come to an end, and, rightly so, AGOX Connector got edited away. Wikipedia currently calls it a &ldquo;UC-E6 proprietary (non-USB) plug&rdquo;, but, in my heart of hearts, I know what it really is.</p>
-]]></content>
-  </entry>
-  
-</feed>
+
+
+</body>
+</html>

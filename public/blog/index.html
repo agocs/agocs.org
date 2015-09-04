@@ -104,48 +104,142 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
-		<a href="/blog/2014/09/19/agox-connectors/">
+		<a href="/blog/2015/07/30/internet-jukebox/">
 		
-			AGOX Connectors</a>
+			Internet Jukebox</a>
 	</h2>
 	<div class="entry-content">
-		<h3>Or, how we hacked reality</h3>
+		<p>One of the hackerspaces at which I am a member installed a Beaglebone Black on their door and put a speaker outside.</p>
 
-<p>This is an eight-pin AGOX connector:</p>
+<p><a href="http://imgur.com/v3esU7N"><img src="http://i.imgur.com/v3esU7Nl.jpg" title="source: imgur.com" /></a><a href="http://imgur.com/Pyb5A9A"><img src="http://i.imgur.com/Pyb5A9Al.jpg" title="source: imgur.com" /></a></p>
 
-<p><img src="http://i.imgur.com/NHrH5hOl.jpg"></p>
+<p>Now we can play sounds to the street, but to do so, you have to ssh into the Beaglebone. That&rsquo;s not bad, but it&rsquo;s a hassle. Okay, so can I make a REST endpoint that plays music?</p>
 
-<p>In September of 2008, I was a student at the Georgia Institute of Technology and heavily involved in the <a href="http://www.wrek.org">WREK</a> radio station.One of my good friends at the time was <a href="http://centrisian.com/">Robert Wright</a>. My &ldquo;initials&rdquo; (how we logged in, signed up for shifts, etc.) at the radio station were &ldquo;AGOX&rdquo;, and I signed all my emails that way. One afternoon, Robert pointed me toward the Wikipedia Talk page for USB: specifically at a section called <a href="http://en.wikipedia.org/wiki/Talk:USB/Archive_4#Mystery_micro_plug">Mystery Micro Plug</a>. At the bottom, he wrote:</p>
+<p>(The answer is yes.)</p>
 
-<blockquote><p>Based on personal knowledge, and having worked in the field for a few years, the &lsquo;Mystery Plug&rsquo; is internally named the &lsquo;Agox connector&rsquo; when used in combination with digital cameras. We refer to them this way because of the gentleman with whom I worked. 128.61.120.190 (talk) 22:49, 23 September 2008 (UTC)</p></blockquote>
+<p>Here&rsquo;s the <a href="https://github.com/agocs/bbb_sound_server">repo</a>. Let&rsquo;s go through it.</p>
 
-<p>I thought it was funny, so I replied.</p>
+<h2>Structure</h2>
 
-<blockquote><p>I think I remember seeing it called the &lsquo;Agox Connector&rsquo; in Nikon documentation somewhere. I always wondered why. 128.61.69.123 (talk) 22:56, 23 September 2008 (UTC)</p></blockquote>
+<p>There are two endpoints, <code>/</code> and <code>/play/</code>. <code>/</code> returns a simple HTML form that lets the user upload a sound file. When the user clicks <code>Submit</code>, a <code>POST</code> request is made to <code>/play/</code>. The sound file is extracted from the form data, and asynchronously processed.</p>
 
-<p>It would have died at this point if another Wikipedia editor hadn&rsquo;t gotten involved.</p>
+<p>The sound file process is thus: it is saved to a temporary file on disk, <code>mplayer</code> is called on that file, and then when that process terminates, the sound file is removed.</p>
 
-<blockquote><p>Hmmm&hellip; very interesting. Do you have a reference for it anywhere??? ǝɹʎℲxoɯ (contrib) 06:33, 24 September 2008 (UTC)</p></blockquote>
+<h3>Serving a static html page</h3>
 
-<p>Well&hellip; One good lie begets another. Rob said:</p>
+<p>is easy.</p>
 
-<blockquote><p>I&rsquo;m no longer working there, but I could possibly try to get some documents from people who still work there. 128.61.120.190 (talk) 09:32, 24 September 2008 (UTC)</p></blockquote>
+<pre><code>controlfs := http.FileServer(http.Dir("control"))
+http.Handle("/", controlfs)
+</code></pre>
 
-<p>And then, a few days later, he said:</p>
+<p>There&rsquo;s a directory called <code>control</code>, and it contains <code>index.html</code>. When you hit <code>/</code>, you get index.html. Wildly easy.</p>
 
-<blockquote><p>So, after having asked around, I&rsquo;ve learned that the connector&rsquo;s internal name of &lsquo;Agox&rsquo; is on some documentation that we haven&rsquo;t released to the public yet. The name is perfectly fine to use for the article, but the Nikon documents cannot be released. If I could cite them here, I would, but alas, I am still bound not to release the information behind this. 24.98.65.137 (talk) 04:48, 30 September 2008 (UTC)</p></blockquote>
+<h3>Creating that REST endpoint</h3>
 
-<p>Finally, about a month later, I came up with the most ridiculous thing I could imagine.</p>
+<pre><code>http.HandleFunc("/play/", func(w http.ResponseWriter, req *http.Request) {
+    if req.Method == "POST" {
 
-<blockquote><p>It stands for Asynchronous Gamma-Object Transfer (x=trans). In Nikon&rsquo;s logical model, the alpha object acts as a server, the beta object acts as a client, and data that flows between the two are considered gamma objects. There are delta and epsilon objects as well, but those are too small to get into. 128.61.69.123 (talk) 23:27, 21 October 2008 (UTC)</p></blockquote>
+        if req.ContentLength &gt; 10485760 {
+            w.WriteHeader(http.StatusBadRequest)
+            w.Write([]byte("File size capped at 10mb"))
+            return
+        }
 
-<p>We left it at that. A few months later, Rob pointed me back at the main USB article. I scrolled through and saw this:</p>
+        soundFile, headers, err := req.FormFile("soundFile")
+        if err != nil {
+            log.Printf("Error getting soundFile from Form. \n %s", err.Error())
+            w.WriteHeader(http.StatusServiceUnavailable)
+            return
+        }
+        log.Printf("Recieved %s", headers.Filename)
+        w.Write([]byte("All done!"))
+        go playASound(soundFile)
 
-<p><img src="http://i.imgur.com/usgXmpCl.png"></p>
+    } else {
+        w.WriteHeader(http.StatusMethodNotAllowed)
 
-<p>We&rsquo;d done it! Someone took our lies and made them reality! It didn&rsquo;t stop there. You could find Chinese companies selling AGOX cables and AGOX connectors, people mentioned AGOX connectors on forums, one guy even wrote a blog post about an AGOX to regular USB converter he made.</p>
+        //TODO(cagocs): maybe return 200 with the name of the sound playing?
+    }
+})
+</code></pre>
 
-<p>All good things must come to an end, and, rightly so, AGOX Connector got edited away. Wikipedia currently calls it a &ldquo;UC-E6 proprietary (non-USB) plug&rdquo;, but, in my heart of hearts, I know what it really is.</p>
+<p>Briefly, here&rsquo;s what we&rsquo;re doing:</p>
+
+<ul>
+<li>Setting up a url pattern, <code>/play</code>/.</li>
+<li>Defining an anonymous function that runs when you hit <code>/play</code>/</li>
+<li>Checking the request method.
+
+<ul>
+<li>if it&rsquo;s <code>POST</code>
+
+<ul>
+<li>Check the content-length. If it&rsquo;s greater than 10 MiB, return a status code 400.</li>
+<li>Get the <code>soundFile</code> out of the form.</li>
+<li>Log the filename</li>
+<li>Return a status code 200</li>
+<li>Asynchronously play the file</li>
+</ul>
+</li>
+<li>if it isn&rsquo;t
+
+<ul>
+<li>Return a status code 405</li>
+<li>I considered returning a string representation of all the files playing, but didn&rsquo;t.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+<p><em>One quick point:</em> Yes, it&rsquo;s possible to spoof the content-length in a request. I didn&rsquo;t check for that. If you decide to run this in any sort of mission critical sense, maybe watch out for that.</p>
+
+<h3>Playing a sound</h3>
+
+<p>func playASound(file multipart.File) {</p>
+
+<pre><code>    soundFile, err0 := ioutil.TempFile("", "sound_")
+    if err0 != nil {
+        log.Printf("Error initializing new file")
+    }
+
+    buffer, err1 := ioutil.ReadAll(file)
+    if err1 != nil {
+        log.Printf("Error reading mime multipart file")
+    }
+
+    err2 := ioutil.WriteFile(soundFile.Name(), buffer, os.ModeTemporary)
+    if err2 != nil {
+        log.Printf("Error writing file to disk")
+    }
+
+    cmd := exec.Command("mplayer", soundFile.Name())
+
+    err3 := cmd.Run()
+    if err3 != nil {
+        log.Printf("Error playing file %s", soundFile.Name())
+    }
+
+    soundFile.Close()
+    err4 := os.Remove(soundFile.Name())
+    if err4 != nil {
+        log.Println("Error deleting %s", soundFile.Name())
+    }
+
+}
+</code></pre>
+
+<p>So now we have a sound file in memory. How do we get it to the speakers? I spent a long time screwing around trying to figure out a &ldquo;pure Go&rdquo; solution, gave up, and decided to cheat. The Beaglebone Black will probably ship with <a href="https://en.wikipedia.org/wiki/MPlayer">MPlayer</a>; why not use that?</p>
+
+<p>I skimmed through some code examples and came up with the solution above. <code>playASound</code> is running asynchronously, so it can spend some time doing what it needs to do. It creates a new <code>TempFile</code>, and writes the sound file there. It then creates a <code>Command</code> that calls <code>mplayer</code> and passes the name of the temporary file to <code>mplayer</code> as an argument. <code>Mplayer</code> plays the file, and when the <code>mplayer</code> process completes, our goroutine closes and removes the temporary file.</p>
+
+<h2>Running</h2>
+
+<p>I decided to not take my own advice and open this up to the general internet a few days ago. I used port forwarding on my router to forward :3030 on my external IP address to port :3030 on my laptop, and ran the program. I posted about it on IRC, forums, and made an Imgur post, and I got a few people participating.</p>
+
+<p>I found it to be incredibly stable. No crashing, no issues running 4 to 6 instances of mplayer on top of one another. I was pleased with how the server handled unexpected EOFs and connection timeouts. Lastly, I discovered that letting people assault my ears with a barrage of mp3s is fun!</p>
 
 		
 		
@@ -165,12 +259,12 @@ $(document).ready(
   
 
 
-<time datetime="2014-09-19T10:23:41-05:00" pubdate data-updated="true">Sep 19<span>th</span>, 2014</time></div>
+<time datetime="2015-07-30T10:40:50-05:00" pubdate data-updated="true">Jul 30<span>th</span>, 2015</time></div>
 	
 
 <div class="tags">
 
-	<a class='category' href='/blog/categories/hack/'>hack,</a>, <a class='category' href='/blog/categories/history/'>history</a>, <a class='category' href='/blog/categories/prank/'>prank,</a>
+	<a class='category' href='/blog/categories/hacking/'>hacking</a>
 
 </div>
 
@@ -182,14 +276,36 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
-		<a href="/blog/2014/09/15/telescope-update/">
+		<a href="/blog/2015/03/01/sun-visor-bracket/">
 		
-			Telescope Update</a>
+			Sun Visor Bracket</a>
 	</h2>
 	<div class="entry-content">
-		<p>I went to the <a href="http://sshchicago.org">Southside Hackerspace</a> this weekend to do some work on the telescope project. No major developments, but the following is worth pointing out:</p>
+		<p>I shattered the sun visor bracket on my Jeep in the cold this winter, so I did the only sensible thing. I tried to machine a new one.</p>
 
-<h3>Driving a wood screw through Teflon is <strong>hard</strong>.</h3>
+<p>I started with a block of 2&#8221; by 4&#8221; aluminum stock. I cut 2&#8221; off of it with a band saw. The blade popped off of its guide with about 1/10&#8221; left to go, so fixing that was a fun diversion.</p>
+
+<p>I finally got a piece mounted in the Bridgeport and milled a few reference surfaces. I sent this picture to my friend to ask about the finish on that side milling. He said it was normal, if a little fugly.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-P5TTwjH/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-P5TTwjH/0/L/20150301140926-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>I call this picture, &ldquo;Where the hell did I put my calipers?&rdquo;</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-TwhTxdW/A" title=""><img src="http://agocs.smugmug.com/Other/Jeepquest/i-TwhTxdW/0/L/20150301_143828-L.jpg" title="" alt=""></a></p>
+
+<p>This is one of my favorite parts of machining. On the left, you can see the rough cut that&rsquo;s out-of-square. On the right, the machined surface.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-wrpwHTL/A" title=""><img src="http://agocs.smugmug.com/Other/Jeepquest/i-wrpwHTL/0/L/20150301_144604-L.jpg" title="" alt=""></a></p>
+
+<p>I took a bunch more cuts, and got here.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-x8gJt6Q/A" title=""><img src="http://agocs.smugmug.com/Other/Jeepquest/i-x8gJt6Q/0/L/20150301_162907-L.jpg" title="" alt=""></a></p>
+
+<p>Then I messed up.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-Btb5N32/A" title=""><img src="http://agocs.smugmug.com/Other/Jeepquest/i-Btb5N32/0/L/20150301_215830-L.jpg" title="" alt=""></a></p>
+
+<p>Notice the middle part? That would be perfect, if the sun visor stuck up. Of course, it hangs down, so this part is completely worthless. Fortunately, I have enough stock to make a second one.</p>
 
 		
 		
@@ -209,166 +325,12 @@ $(document).ready(
   
 
 
-<time datetime="2014-09-15T07:53:44-05:00" pubdate data-updated="true">Sep 15<span>th</span>, 2014</time></div>
-	
-
-
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2014/09/11/cancelling-comcast/">
-		
-			Cancelling Comcast</a>
-	</h2>
-	<div class="entry-content">
-		<ul>
-<li>Write down your account number.</li>
-<li>Call Comcast: (1-800-934-6489)</li>
-<li>Sit through the phone tree. The correct options are:
-
-<ul>
-<li>1: Yes, my phone number is the phone number associated with the account.</li>
-<li>5: Remove services</li>
-<li>3: Cancel all services</li>
-<li>2: No, please don&rsquo;t call me later.</li>
-</ul>
-</li>
-<li>Get confused when your phone makes the hanging up noise.</li>
-</ul>
-
-
-<p>Re-center your chakras and try again.</p>
-
-<ul>
-<li>Call Comcast.</li>
-<li>1</li>
-<li>5</li>
-<li>3</li>
-<li>2</li>
-<li>A guy answers after less than a minute of waiting!
-
-<ul>
-<li>&ldquo;Hi, my name is Chris, and I&rsquo;d like to &ndash;&rdquo;</li>
-<li>&ldquo;Hello, can you hear me? If you can hear me and I can&rsquo;t hear you, please call us back at&hellip;&rdquo;</li>
-</ul>
-</li>
-</ul>
-
-
-<p>Okay, maybe that was a fluke. Let&rsquo;s try again.</p>
-
-<ul>
-<li>Call Comcast.</li>
-<li>1, 5, 3, 2</li>
-<li>Another guy answers after a minute or two
-
-<ul>
-<li>I&rsquo;d like to cancel</li>
-<li>I&rsquo;m moving, and Comcast doesn&rsquo;t service the new building</li>
-<li>Okay, we&rsquo;ll go with &ldquo;the new building provides Comcast already&rdquo;</li>
-<li>No, I don&rsquo;t want to add Comcast telephone service</li>
-<li>Yes, I&rsquo;d like to cancel</li>
-<li>I&rsquo;ll drop off the equipment</li>
-<li>Okay, thank you!</li>
-</ul>
-</li>
-</ul>
-
-
-<p>It took ten minutes from start to finish.</p>
-
-		
-		
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-09-11T12:14:06-05:00" pubdate data-updated="true">Sep 11<span>th</span>, 2014</time></div>
-	
-
-
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2014/08/29/celestron-firstscope/">
-		
-			Celestron FirstScope</a>
-	</h2>
-	<div class="entry-content">
-		<p>I bought a Celestron FirstScope dobsinian telescope for a project that I&rsquo;ve been kicking around. It&rsquo;s not super duper, but for $50, it&rsquo;s a functional telescope.</p>
-
-<p><a href="http://agocs.smugmug.com/Other/Misc/i-CjjQRdv/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-CjjQRdv/0/L/20140829153602-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
-
-<p>Before I bought it, I was looking for some dimension specs. Unable to find any, I decided to document it myself.</p>
-
-<p><a href="http://agocs.smugmug.com/Other/Misc/i-RwMDHNr/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-RwMDHNr/0/M/20140829161147-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
-
-<p>Measurements are in inches, and are &ldquo;close enough&rdquo;</p>
-
-<ul>
-<li>Base diameter: 8&#8221;</li>
-<li>Little rubber feet height: 1.25&#8221;</li>
-<li>Lazy susan height: 1.25&#8221;</li>
-<li>Floor to telescope tube mid-point: 9.5&#8221;</li>
-<li>Telescope tube overall length: 10.5&#8221;</li>
-<li>Telescope tube diameter: 4&#8221;</li>
-<li>Eyepiece height (min): 2.5&#8221;</li>
-<li>Eyepiece height (max): 4&#8221;</li>
-</ul>
-
-
-<h3>First Impressions</h3>
-
-<p>It&rsquo;s not half bad. Pretty easy to use. Probably needs to be collimated, but it&rsquo;s definitely good enough for looking down on the city during the day. For $50, it&rsquo;s a solid scope. I&rsquo;m impressed.</p>
-
-<p>Here&rsquo;s a picture I took of a barge. It&rsquo;s a pretty hazy day today, unfortunately.</p>
-
-<p><a href="http://agocs.smugmug.com/Other/Misc/i-gmWWFq8/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-gmWWFq8/0/L/20140829163122-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
-
-		
-		
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-08-29T16:01:13-05:00" pubdate data-updated="true">Aug 29<span>th</span>, 2014</time></div>
+<time datetime="2015-03-01T22:28:19-06:00" pubdate data-updated="true">Mar 1<span>st</span>, 2015</time></div>
 	
 
 <div class="tags">
 
-	<a class='category' href='/blog/categories/hack/'>hack</a>, <a class='category' href='/blog/categories/telescope/'>telescope</a>
+	<a class='category' href='/blog/categories/hack/'>hack</a>, <a class='category' href='/blog/categories/jeep/'>jeep,</a>
 
 </div>
 
@@ -380,14 +342,25 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
-		<a href="/blog/2014/08/19/stupid-rabbitmq-tricks/">
+		<a href="/blog/2014/12/09/message-queues-and-go/">
 		
-			RabbitMQ Best Practices in Go</a>
+			Message Queues and Go</a>
 	</h2>
 	<div class="entry-content">
-		<p>I decided to change the title of this article. Check out:</p>
+		<p>I gave a talk last night to the ChicaGoLang meetup entitled &ldquo;Message Queues and Go.&rdquo; It went over using a Message Queue Broker as a backbone to tie together a service oriented archetecture, with examples in Go.</p>
 
-<p><a href="http://agocs.org/blog/2014/08/19/rabbitmq-best-practices-in-go/">RabbitMQ Best Practices in Go</a></p>
+<p>I put my slides here:</p>
+
+<p><a href="http://go-talks.appspot.com/github.com/agocs/golangRabbitMQ/rmq.slide#1">http://go-talks.appspot.com/github.com/agocs/golangRabbitMQ/rmq.slide#1</a></p>
+
+<p>and you can follow along with the video here:</p>
+
+<iframe width="854" height="510" src="//www.youtube.com/embed/-S0-qgl8120?list=UUoGyPn-NIuAgkhlN7NAMhqw" frameborder="0" allowfullscreen></iframe>
+
+
+<p>The examples in the code will, unfortunately, not work because they rely on RabbitMQ running on a specific IP address / port.</p>
+
+<p>Let me know if there&rsquo;s anything I got wrong or missed!</p>
 
 		
 		
@@ -407,12 +380,12 @@ $(document).ready(
   
 
 
-<time datetime="2014-08-19T12:57:26-05:00" pubdate data-updated="true">Aug 19<span>th</span>, 2014</time></div>
+<time datetime="2014-12-09T08:50:50-06:00" pubdate data-updated="true">Dec 9<span>th</span>, 2014</time></div>
 	
 
 <div class="tags">
 
-	<a class='category' href='/blog/categories/rabbitmq/'>RabbitMQ</a>, <a class='category' href='/blog/categories/golang/'>golang</a>, <a class='category' href='/blog/categories/hack/'>hack</a>, <a class='category' href='/blog/categories/tips/'>tips</a>
+	<a class='category' href='/blog/categories/golang/'>golang</a>, <a class='category' href='/blog/categories/rabbitmq/'>rabbitmq</a>
 
 </div>
 
@@ -424,246 +397,71 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
-		<a href="/blog/2014/08/19/rabbitmq-best-practices-in-go/">
+		<a href="/blog/2014/11/29/jeep-quest-part-4/">
 		
-			Tips for Using RabbitMQ in Go</a>
+			Jeep Quest Part 4</a>
 	</h2>
 	<div class="entry-content">
-		<h3>Corrections:</h3>
+		<p>Jeepquest is at an end!</p>
+
+<p>Thank you all so much for bearing with my inconsistently numbered posts.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-2kq7TjG/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-2kq7TjG/0/L/20141129_133006-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>Today, Sabrina and I drove up to Kenosha, WI to take a look at this 2002 Wrangler X. First, we had breakfast at a place called The Coffee Pot, where the only not-so-great thing was their coffee. Afterwards, we went to Dan Stipler&rsquo;s Auto World.</p>
+
+<p>This Wrangler looks almost bone stock. It has an aftermarket headunit and no rear seats, but beyond that, it&rsquo;s amazingly clean. What&rsquo;s better: no rust! According to the paperwork, this Jeep is from Arizona. The frame and suspension are utterly pristine.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-BMb8gf4/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-BMb8gf4/0/M/20141129_133037-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p> The salesman admitted he couldn&rsquo;t drive stick, so he asked me to pull it around. As cold as it&rsquo;s been, the Jeep needed a jump. It started right up once we did that, and Sabrina and I went for a test drive. We remarked on how smooth the engine felt relative to the other Jeep we&rsquo;d test driven together, how smooth the ride was once we got to the nicer roads, and how well it pulled.</p>
+
+<p>The fuel light was on and we&rsquo;d been test driving for almost 20 minutes, so we stopped at a gas station to throw $5 worth of fuel in it. I got back in the Jeep to get back home, and it wouldn&rsquo;t start! I noticed a Toyota Landcruiser with bull bars and Star Wars vinyl decals on it, and I asked them if they&rsquo;d give me a jump. We get to talking, and they&rsquo;ve driven up from Florida. Sabrina and them talked about Tampa for a minute, then we got the Jeep started.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-2LtX85D/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-2LtX85D/0/M/20141129_133017-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>We drove back to the dealership and talked about it. Sabrina liked this Jeep a lot, and we decided on some negotiating tactics. They were asking 10,955. I&rsquo;d point out the high mileage and lack of rear seat, and offer 8. Our highest was 9,500.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-wkLtvhd/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-wkLtvhd/0/M/20141129_133043-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>I sat down with the salesman and we did just that (when I mentioned the missing seat, the salesman gave me a look that let me know I had him over a barrel a little bit). We agreed on a final price, and they wouldn&rsquo;t be replacing the rear seat. Sabrina got back on the road while I signed the paperwork.</p>
+
+<p>On the way back, I stopped by Mars Cheese Castle!</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-nzsX7jT/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-nzsX7jT/0/M/20141129155154-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>A bonus that came with the Jeep: a CD labeled &ldquo;Vegas 2012&rdquo;. I listened to it for a while, seemed to mostly be West Coast rap I didn&rsquo;t recognize. I switched to NPR.</p>
+
+<p>Success!</p>
+
+<p>Stuff to get/replace:</p>
 
 <ul>
-<li>4% != .004% : When I was writing the article, my brain translated 99996 into 96000. Big difference. It turns out that I&rsquo;m unable to dequeue somewhere between .004% and .20% of messages in about half of test runs.</li>
+<li>Rear seat</li>
+<li>Windshield wipers are looking gnarly</li>
+<li>One of the rubber windshield hood rests (ordered)</li>
+<li>Head unit with a less ugly one</li>
+<li>Locking underseat storage drawer</li>
+<li>Spare tire is looking a little old and cracked, despite never having been used. The other tires are worn, but not egregiously so. They are M+S rated Firestone ATs. I&rsquo;ll replace all the tires in probably six months&#8217; time.</li>
+<li>Tow hooks</li>
+<li>Grab handles</li>
+<li>Side steps</li>
 </ul>
 
 
-<h3>Note:</h3>
-
-<p><strong>I&rsquo;ve been chatting with some very helpful RabbitMQ-knowledgeable people, and they have some suggestions for the issues I&rsquo;m seeing that I&rsquo;m going to check out. I will update this article with my findings.</strong></p>
-
-<p>I want to thank <a href="https://twitter.com/old_sound">Alvaro Videla</a> and <a href="https://twitter.com/michaelklishin">Michael Klishin</a> for reading my first attempt at this post and suggesting different avenues to explore.</p>
-
-<h2>Introduction</h2>
-
-<p>For the two of you who don&rsquo;t know, RabbitMQ is a really neat AMQP-compliant queue broker. It exists to facilitate the passing of messages between or within systems. I&rsquo;ve used it for a couple of different projects, and I&rsquo;ve found it to be tremendously capable: I&rsquo;ve seen a RabbitMQ instance running on a single, moderately sized, VM handle almost 3GB/s.</p>
-
-<p>I was doing some load testing with RabbitMQ recently, and I found that, if I started attempting to publish more than around 2500 10KB messages per second, <del>about 4%</del> as much as 0.2% of those messages wouldn&rsquo;t make it to the queue during some test runs. I am not sure if this is my code&rsquo;s fault or if I am running into the limits of the RabbitMQ instance I was testing against (probably the former), but with the help of the RabbitMQ community, I was able to come up with some best practices that I&rsquo;ve described below.</p>
-
-<p>The examples below are all in Go, but I&rsquo;ve tried my best to explain them in such a way that people who are not familiar with Go can understand them.</p>
-
-<h2>Terminology</h2>
-
-<p>If you&rsquo;re unfamiliar with AMQP, here&rsquo;s some terminology to help understand what&rsquo;s possible with a queue broker and what the words mean.</p>
+<p>Stuff it could probably use:</p>
 
 <ul>
-<li><strong>Connection</strong>: A connection is a long-lived TCP connection between an AMQP client and a queue broker. Maintaining a connection reduces TCP overhead. A client can re-use a connection, and can share a connection among threads.</li>
-<li><strong>Channel</strong>: A channel is a short-lived sub-connection between a client and a broker. The client can create and dispose of channels without incurring a lot of overhead.</li>
-<li><strong>Exchange</strong>: A client writes messages to an exchange. The exchange forwards each message on to zero or more queues based on the message&rsquo;s routing key.</li>
-<li><strong>Queue</strong>: A queue is a first-in, first out holder of messages. A client reads messages from a queue. The client can specify a queue name (useful, for example, for a work queue where multiple clients are consuming from the same queue), or allow the queue broker to assign it a queue name (useful if you want to distribute copies of a message to multiple clients).</li>
-<li><strong>Routing Key</strong>: A string (optionally) attached to each message. Depending on the exchange type, the exchange may or may not use the Routing Key to determine the queues to which it should publish the message.</li>
-<li><strong>Exchange types</strong>:
+<li>Oil change (Little darker than I&rsquo;d like)
 
 <ul>
-<li><strong>Direct</strong>: Delivers all messages with the same routing key to the same queue(s).</li>
-<li><strong>Fanout</strong>: Ignores the routing key, delivers a copy of the message to each queue bound to it.</li>
-<li><strong>Topic</strong>: Each queue subscribes to a topic, which is a regular expression. The exchange delivers the message to a queue if the queue&rsquo;s subscribed topic matches the message.</li>
-<li><strong>Header</strong>: Ignores the routing key and delivers the message based on the AMQP header. Useful for certain kinds of messages.</li>
-</ul>
-</li>
-</ul>
-
-
-<h2>Testing methodology</h2>
-
-<p>Here is the load tester I wrote: <a href="https://github.com/backstop/rabbit-mq-stress-tester">https://github.com/backstop/rabbit-mq-stress-tester</a>. It uses the <a href="https://github.com/streadway/amqp">streadway/amqp library</a>. Per <a href="https://github.com/streadway/amqp/issues/93">this issue</a>, my stress tester does not share connections or channels between Goroutines &mdash; it launches a configurably-sized pool of Goroutines, each of which maintains its own connection to the RabbitMQ server.</p>
-
-<p>To run the same tests I was running:</p>
-
-<ul>
-<li><p>Clone the repo or install using <code>go get github.com/backstop/rabbit-mq-stress-tester</code></p></li>
-<li><p>Open two terminal windows. In one, run</p>
-
-<pre><code>  ./tester -s test-rmq-server -c 100000
-</code></pre></li>
-</ul>
-
-
-<p>That will launch the in Consumer mode. It defaults to 50 Goroutines, and will consume 100,000 messages before quitting.</p>
-
-<ul>
-<li><p>In the other terminal window, run</p>
-
-<pre><code>  ./tester -s test-rmq-server -p 100000 -b 10000 -n 100 -q
-</code></pre></li>
-</ul>
-
-
-<p>This will run the tester in Producer mode. It will (-p)roduce 100,000 messages of 10,000 (-b)ytes each. It will launch a pool of 100 Goroutines (-n), and it will work in (-q)uiet mode, only printing NACKs and final statistics to stdout.</p>
-
-<p>What I found is that, roughly half the time I run the above steps, the consumer will only consume 99,000 and change messages (typically greater than 99,980, but occasionally as low as 99,800). I was unable to find any descriptive error messages in the <code>rabbitmq@test-rmq-server.log</code> file.</p>
-
-<p>I can change that, though. If I run the producer like this:</p>
-
-<pre><code>    ./tester -s test-rmq-server -p 100000 -b 10000 -n 100 -q -a
-</code></pre>
-
-<p>then each Goroutine waits for an ACK or NACK from the RabbitMQ server before publishing the next message (that&rsquo;s what the -a flag does). I have never seen a missing message in this mode. The functionality of the -a flag is described in the next section.</p>
-
-<h3>Some things that I don&rsquo;t think are the culprit:</h3>
-
-<ul>
-<li>Memory-based flow control: Memory usage as reported by <code>top</code> never exceeds approximately 22%. Also, no messages in the log file.</li>
-<li>Per-connection flow control: After fussing with <code>rabbitmqctl list_connections</code> for a while, I was not able to find evidence of a connection that had been blocked. I&rsquo;m not sure of these results, though, so if someone would be willing to give me a hand with this, that would be awesome.</li>
-</ul>
-
-
-<h2>Ensuring your message got published</h2>
-
-<p>Like I said earlier, I was doing some stress testing against a RabbitMQ instance and a small number of messages that I attempted to publish did not get dequeued. I reached out to the RabbitMQ community, and someone on their IRC channel told me to look up Confirm Select.</p>
-
-<p>When you place a channel into Confirm Select, the AMQP broker will respond with an ACK with a for each message passed to it on that channel. Included with the ACK is an integer that increments with each ACK, similar to a TCP sequence ID. If something goes wrong, the broker will respond with a NACK. In Go, placing a channel into Confirm Select looks like this:</p>
-
-<figure class='code'><figcaption><span>Putting a channel in Confirm Select</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='go'><span class='line'><span class="nx">channel</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">connection</span><span class="p">.</span><span class="nx">Channel</span><span class="p">()</span>
-</span><span class='line'><span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-</span><span class='line'>  <span class="nb">println</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
-</span><span class='line'>  <span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'><span class="nx">channel</span><span class="p">.</span><span class="nx">Confirm</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="nx">ack</span><span class="p">,</span> <span class="nx">nack</span> <span class="o">:=</span> <span class="nx">channel</span><span class="p">.</span><span class="nx">NotifyConfirm</span><span class="p">(</span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kt">uint64</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kt">uint64</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The above <code>channel.Confirm(false)</code> puts the channel into Confirm mode, and the <code>false</code> puts the client out of NoWait mode such that the client waits for an ACK or NACK after each message. <code>ack</code> and <code>nack</code> are golang <code>chan</code>s that receive the integers included with the ACKs or NACKs. If you were in NoWait mode, you could use them to bulk publish a bunch of messages and then figure out which messages did not make it.</p>
-
-<p>Listening for the ACK looks like this:</p>
-
-<figure class='code'><figcaption><span>Publish a message and wait for confirmation</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class='go'><span class='line'>   <span class="nx">channel</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="nx">q</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="nx">amqp</span><span class="p">.</span><span class="nx">Publishing</span><span class="p">{</span>
-</span><span class='line'>      <span class="nx">Headers</span><span class="p">:</span>         <span class="nx">amqp</span><span class="p">.</span><span class="nx">Table</span><span class="p">{},</span>
-</span><span class='line'>      <span class="nx">ContentType</span><span class="p">:</span>     <span class="s">&quot;text/plain&quot;</span><span class="p">,</span>
-</span><span class='line'>      <span class="nx">ContentEncoding</span><span class="p">:</span> <span class="s">&quot;UTF-8&quot;</span><span class="p">,</span>
-</span><span class='line'>      <span class="nx">Body</span><span class="p">:</span>            <span class="nx">messageJson</span><span class="p">,</span>
-</span><span class='line'>      <span class="nx">DeliveryMode</span><span class="p">:</span>    <span class="nx">amqp</span><span class="p">.</span><span class="nx">Transient</span><span class="p">,</span>
-</span><span class='line'>      <span class="nx">Priority</span><span class="p">:</span>        <span class="mi">0</span><span class="p">,</span>
-</span><span class='line'>  <span class="p">},</span>
-</span><span class='line'>  <span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">select</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">case</span> <span class="nx">tag</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">ack</span><span class="p">:</span>
-</span><span class='line'>      <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Acked &quot;</span><span class="p">,</span> <span class="nx">tag</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">case</span> <span class="nx">tag</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">nack</span><span class="p">:</span>
-</span><span class='line'>      <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Nack alert! &quot;</span><span class="p">,</span> <span class="nx">tag</span><span class="p">)</span>
-</span><span class='line'>  <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>After each publish, I&rsquo;m performing a read off of the <code>ack</code> and <code>nack</code> chans (that is what <code>select</code> does). That read blocks until the client gets an ACK or NACK back from the broker.</p>
-
-<p>The above examples are in Go, but there&rsquo;s an equivalent in the other libraries I&rsquo;ve played with. Clojure (langohr) has <code>confirm/select</code> and <code>confirm/wait-for-confirms-or-die</code>.</p>
-
-<h3>Can we do better?</h3>
-
-<p>Yes. Rather than wait for an ACK after each publish, it&rsquo;s better to publish a bunch of messages, listen for ACKs, and then handle failures. I didn&rsquo;t, because I was already seeing performance several orders of magnitude better than I needed.</p>
-
-<p>We can also wrap blocks of messages in a transaction if we need to ensure that all messages get published and retain order, but doing that incurs something like a 250x performance penalty.</p>
-
-<h2>Pool your Goroutines and avoid race conditions</h2>
-
-<p><a href="https://github.com/streadway/amqp/issues/93">This issue</a> proved interesting (if ultimately not relevant to my problem). It looks like the person who filed the issue was running into two issues:</p>
-
-<ul>
-<li>There was a race condition in the code that counted ACKs / NACKs</li>
-<li>The one-Goroutine-per-publish strategy causes a condition where the 2000 goroutines waiting for network IO prevent the goroutine listening for ACKs / NACKs from receiving sufficient CPU cycles.</li>
-</ul>
-
-
-<p>I got around this in two ways: I have a fixed-size pool of Goroutines performing the publishing, and each goroutine handles its own Publish &ndash;> Ack lifecycle.</p>
-
-<h2>Ensuring messages get handled correctly</h2>
-
-<p>A message queue is of little use if messages just sit there, so it is prudent to include a consumer or two. But, what happens if your consumer crashes? Does your message get lost in the ether?</p>
-
-<p>The answer is <strong>AutoAck</strong>. More specifically, realizing that AutoAck is dangerous and wrong.</p>
-
-<p>When a consumer consumes a message from a queue, the queue broker waits for an ACK before discarding the message. When a consumer has AutoAck enabled, it sends the ACK (thus causing the message to be discarded) instantly upon receiving the message. It&rsquo;s smarter to read the next message on the queue, handle the message properly, and then send the ACK.</p>
-
-<figure class='code'><figcaption><span>Reading and acknowledging messages</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='go'><span class='line'><span class="nx">autoAck</span> <span class="o">:=</span> <span class="kc">false</span>
-</span><span class='line'>
-</span><span class='line'><span class="nx">msgs</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">channel</span><span class="p">.</span><span class="nx">Consume</span><span class="p">(</span><span class="nx">q</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">,</span> <span class="nx">autoAck</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
-</span><span class='line'><span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-</span><span class='line'>  <span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">for</span> <span class="nx">d</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">msgs</span> <span class="p">{</span> <span class="c1">// the d stands for Delivery</span>
-</span><span class='line'>  <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="nb">string</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">Body</span><span class="p">[:]))</span> <span class="c1">// or whatever you want to do with the message</span>
-</span><span class='line'>  <span class="nx">d</span><span class="p">.</span><span class="nx">Ack</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In the example above, <code>autoAck</code> is set to false. Every time I read a message (in the <code>for d := range msgs</code> loop), I send an ACK for that message. If I were to call <code>d.Ack(true)</code>, that would send an ACK for that message and all previous unacknowledged messages.</p>
-
-<p>If my consumer quits without acknowledging a message, that message is repeated to the next consumer to come by.</p>
-
-<h2>Performant results</h2>
-
-<p>So, what kind of performance am I getting?</p>
-
-<p>The following numbers are all time to publish and consume 100,000 messages, each with a 10KB payload. The tester was running on my Macbook, and RabbitMQ was running on a Cloudstack VM.</p>
-
-<ul>
-<li>With Confirm Select
-
-<ul>
-<li>Publishing: 24.42s</li>
-<li>Consuming: 26.79s</li>
+<li>Blackstone Labs analysis</li>
 </ul>
 </li>
-<li>Without Confirm Select
-
-<ul>
-<li>Publishing: 16.32s</li>
-<li>Consuming: 26.13s</li>
-</ul>
-</li>
+<li>Coolant flush/fill (looked OK, do eventually)</li>
+<li>Other fluids eventually</li>
 </ul>
 
-
-<p>The point is, RabbitMQ is fast and Go is fast. When we use one to stress test the other, messages get lost somewhere. If we take a little bit of time to ensure that messages get published and processed properly, we can prevent pesky data loss issues.</p>
 
 		
 		
@@ -683,12 +481,12 @@ $(document).ready(
   
 
 
-<time datetime="2014-08-19T12:57:26-05:00" pubdate data-updated="true">Aug 19<span>th</span>, 2014</time></div>
+<time datetime="2014-11-29T21:48:18-06:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time></div>
 	
 
 <div class="tags">
 
-	<a class='category' href='/blog/categories/rabbitmq/'>RabbitMQ</a>, <a class='category' href='/blog/categories/golang/'>golang</a>, <a class='category' href='/blog/categories/hack/'>hack</a>, <a class='category' href='/blog/categories/tips/'>tips</a>
+	<a class='category' href='/blog/categories/jeepquest/'>jeepquest</a>, <a class='category' href='/blog/categories/jeeps/'>jeeps,</a>
 
 </div>
 
@@ -700,104 +498,55 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
-		<a href="/blog/2014/08/16/the-joke/">
+		<a href="/blog/2014/11/25/cincinnati-chili/">
 		
-			The Joke</a>
+			Cincinnati Chili</a>
 	</h2>
 	<div class="entry-content">
-		<p>Last night, I had a dream that I was telling a joke. It was a long one. I got almost all the way to the punchline before I woke up, and, thinking back on it, I had completely botched the setup. Shame on me.</p>
+		<p>One of my favorite foods to make is Cincinnati Chili.</p>
 
-<p>Here&rsquo;s the joke:</p>
+<p><a href="http://agocs.smugmug.com/Other/Misc/i-FqqCCFQ/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-FqqCCFQ/0/M/20141021214234-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
 
-<p>In eastern Europe, some time in the 15th century, there was a young rabbi. He was just out of training and was not ready to settle down, so he was wandering the countryside performing good deeds.</p>
+<p>Cincinnati Chili is interesting for two reasons. First, the texture is different from that of most chilis. Rather than browning ground beef, the chili substrate is made by breaking raw ground beef up into cold water and bringing that to a boil. You wind up with a much finer texture than you would otherwise. Second, Cincinnati Chili gets a lot of its flavor from cocoa powder and cinnamon. It&rsquo;s not sweet by any means, but it&rsquo;s much different from other chilis.</p>
 
-<p>One day in late spring, the rabbi came across a village situated at the base of a tall mountain. In Roman times, the village was called Villi de Trido, but the villagers just called it Trid and, each other, Trids. The rabbi stayed at the inn one night, and noticed that the Trids looked unusually malnourished and depressed. He took the innkeeper aside and inquired as to what was going on.</p>
+<p>I used to rely on <a href="http://en.wikibooks.org/wiki/Cookbook:Cincinnati-Style_Chili">this recipe from Wikibooks</a>, but measuring out all the spices takes forever. I recently re-coded the recipe to use weights, and I can throw together the spice mixture in less than ten minutes. It&rsquo;s impressive.</p>
 
-<p>&ldquo;There is a rare and special fruit that only grows on the southern face of the mountain that towers above Trid. We Trids used to harvest the fruit. It nourshed us, and we would trade with neighboring villages, and Trid was prosperous! But last year, a monster inhabited the southern face of the mountain. When we go up to pick the delicate fruits, he kicks us off the mountain! Pow, just like that! Now we starve, and we cannot trade with the neighboring villages.&rdquo;</p>
+<p>Anyway, grab a medium-sized bowl and put it on top of your favorite kitchen scale. If you don&rsquo;t have .25 gram precision, don&rsquo;t worry about it too much. Just kinda winging it is okay, we&rsquo;re not baking here.</p>
 
-<p>The rabbi could not let this go. He promised the innkeeper he would do something about it. Perhaps he could talk the monster into a deal with the villagers. He bought a stout rope, a pair of warm gloves, and borrowed some crampons to deal with ice. The next morning, he started up the mountain.</p>
-
-<p>He climbed for hours, expecting to encounter the monster at every turn. The rabbi seemed brave, but he was honestly nervous. What do you say to a monster? He climbed higher and higher, dealing with more and more snow and ice, wishing he had borrowed a heavy coat. As the light faded and he was about to consider making camp for the night, he encountered the grove where the fruit grew! The trees were majestic, and he could see even now the first little fruits starting to bud.</p>
-
-<p>He heard a noise behind him, and wheeled around to find the monster! It stood twelve feet tall, with shaggy black fur and massive paws the size of a man&rsquo;s face. Fearsome though it was, the monster didn&rsquo;t attack. The rabbi waited a moment, and then decided to speak. &ldquo;Monster! The people of the village below say that you kick them off of the mountain. Why is it you have not kicked <em>me</em> from the mountain?&rdquo;</p>
-
-<p>The monster approached the rabbi, and extended one gigantic paw. Placing it on the man&rsquo;s shoulder, the monster said, &ldquo;Silly rabbi. Kicks are for Trids!&rdquo;</p>
-
-<hr />
-
-<p>In my dream, I made the mistake of calling the fruit &ldquo;Trids&rdquo; rather than the villagers. I&rsquo;m glad I woke up. That would have been <em>embarassing!</em></p>
-
-		
-		
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-08-16T17:47:53-05:00" pubdate data-updated="true">Aug 16<span>th</span>, 2014</time></div>
-	
-
-
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2014/06/26/arduino-workshop/">
-		
-			Arduino Workshop</a>
-	</h2>
-	<div class="entry-content">
-		<p>Sometimes, shit doesn&rsquo;t work out. For example: Mike&rsquo;s Hard Lemonade contacted me at the <a href="http://sshchicago.org">Southside Hackerspace</a>, wanting us to modify a golf cart as part of their &ldquo;Mike&rsquo;s Hacks&rdquo; summer ad campaign. I dumped a lot of time (and just a little money) into the project, but everything went south at the last minute.</p>
-
-<p>But this isn&rsquo;t about that.</p>
-
-<p>At the same time, <a href="http://www.pinterest.com/r4v5/">Mason Donahue</a> put me in touch with <a href="https://www.facebook.com/ChicagoGirlsInComputing">Chicago Girls in Computing</a>. I put together a lesson plan, put together Arduino kits, made a powerpoint, and taught a class. It went awesome.</p>
-
-<p>I had them assemble and program basic nightlights (LEDs turn on when the ambient light drops). They took that idea and ran with it.</p>
-
-<p>The kits:</p>
+<p>Into that bowl, put the following:</p>
 
 <ul>
-<li><a href="http://www.amazon.com/gp/product/B00761NDHI/ref=oh_details_o01_s00_i00?ie=UTF8&amp;psc=1">Sainsmart Nano V3</a> &mdash; $14</li>
-<li><a href="https://www.adafruit.com/products/64">Half-size breadboard</a> &mdash; $5</li>
-<li><a href="https://www.adafruit.com/products/161">Photoresistor</a> &mdash; $1</li>
-<li>10Kohm resistor</li>
-<li>9v battery</li>
-<li>9v battery leads</li>
-<li>bunches of LEDs</li>
+<li>Vinegar &mdash; 13 g</li>
+<li>Worstershire sauce &mdash; 4 g</li>
+<li>Chili powder &mdash; 23 g</li>
+<li>Salt &mdash; 23 g</li>
+<li>Cocoa powder (unsweetened) &mdash; 3 g</li>
+<li>Cumin (ground) &mdash; 1 g</li>
+<li>Oreagano &mdash; .5 g</li>
+<li>Cayanne pepper &mdash; .5 g</li>
+<li>Black pepper (ground) &mdash; .5 g</li>
+<li>Cinnamon &mdash; .5 g</li>
+<li>Allspice (ground) &mdash; .5 g</li>
+<li>Marjoram &mdash; .25 g</li>
+<li>Bay leaves &mdash; 2</li>
 </ul>
 
 
-<p>The total cost per student came out to about $27. I was able to pick up a bunch of plastic containers from the grocery store for $0.10 each, and the kits fit into the containers.</p>
+<p>Add to that</p>
 
-<iframe src="http://www.slideshare.net/slideshow/embed_code/36339800" width="476" height="400" frameborder="0" marginwidth="0" marginheight="0" scrolling="no"></iframe>
+<ul>
+<li>Garlic, 2 cloves finely chopped</li>
+<li>Onion, 1 large or 2 small, chopped</li>
+</ul>
 
 
-<p>They seemed to like it.</p>
+<p>Put that aside. Get a decent sized pot, and put in one quart of cold water. Put two pounds of ground beef in there along with your spice mixture, then get your hands in there. You want to make a thin beef slurry.</p>
 
-<p><a href="http://agocs.smugmug.com/Other/misc/29939745_7n8ptc#!i=3343759361&k=5fwQCB6&lb=1&s=A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/misc/i-5fwQCB6/0/L/20140621151638-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+<p>Bring that to a boil, cover, and let it simmer for about two hours. You&rsquo;ll know it&rsquo;s getting ready when it starts taking on a reddish tinge like this.</p>
 
-<p><a href="http://agocs.smugmug.com/Other/misc/29939745_7n8ptc#!i=3343759349&k=hKHRThm&lb=1&s=A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/misc/i-hKHRThm/0/L/20140621151700-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+<p><a href="http://agocs.smugmug.com/Other/Misc/i-cKKjddd/A" title=""><img src="http://agocs.smugmug.com/Other/Misc/i-cKKjddd/0/M/20141021211059-M.jpg" title="" alt=""></a></p>
 
-<p><a href="http://agocs.smugmug.com/Other/misc/29939745_7n8ptc#!i=3343759469&k=3W5HDLF&lb=1&s=A" title=""><img src="http://agocs.smugmug.com/Other/misc/i-3W5HDLF/0/L/20140621151538-L.jpg" title="" alt=""></a></p>
-
-<p><a href="http://agocs.smugmug.com/Other/misc/29939745_7n8ptc#!i=3343759220&k=9WTNCvh&lb=1&s=A" title=""><img src="http://agocs.smugmug.com/Other/misc/i-9WTNCvh/0/L/20140621151415-L.jpg" title="" alt=""></a></p>
-
-<p>Major props go to Backstop, Stack Overflow, and DigitalOcean. I wrote them at the last minute saying it would sure be neat if I could give out some stickers at the workshop. Backstop gave me pads and pens, Stack Overflow sent stickers and markers, and DigitalOcean sent me a bunch of stickers (and chocolates).</p>
+<p>Serve over spaghetti, covered with a generous portion of grated cheddar cheese and oyster crackers. Add beans if you must. Serves around 6.</p>
 
 		
 		
@@ -817,7 +566,266 @@ $(document).ready(
   
 
 
-<time datetime="2014-06-26T09:33:30-05:00" pubdate data-updated="true">Jun 26<span>th</span>, 2014</time></div>
+<time datetime="2014-11-25T21:06:57-06:00" pubdate data-updated="true">Nov 25<span>th</span>, 2014</time></div>
+	
+
+<div class="tags">
+
+	<a class='category' href='/blog/categories/kitchen/'>kitchen</a>
+
+</div>
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014/11/18/jeep-quest-part-3/">
+		
+			Jeep Quest Part 3</a>
+	</h2>
+	<div class="entry-content">
+		<p>I took a vacation day today and saw another Jeep!</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-GM5XjVz/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-GM5XjVz/0/M/20141118121516-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>It was in a (blessedly indoor) used car lot way up on Pulaski and Addison. It took me, no joke, three busses and an hour and a half to get there. I walked past the place once, walked past it in the other direction, and then went into the wrong business where they were helpful enough to give me directions (turn right and go two doors down).</p>
+
+<p>The Jeep is clean. The lot wants almost $8,000 for it, and it has 187,000 miles. It&rsquo;s got the Sahara trim package, and the interior is really quite nice. The only problem I could find is the resistor pack for the blower motor is shot. That&rsquo;s a $13 part on Amazon, though, and it would take like 30 minutes to change. It&rsquo;s a haggling point.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-KfDFJFJ/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-KfDFJFJ/0/M/20141118121540-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>The exterior is solid. Paint is worn off in a few weird places, and there&rsquo;s a little bit of surface rust in the back. The tires are decent, but I would really feel more comfortable with a fresher set &mdash; especially the rears.</p>
+
+<p>It <em>does</em> have the hard top, though. I&rsquo;d prefer the soft top. Honestly, though, I could probably sell the hard top, turn around and buy a new soft top, and still wind up pocketing a little bit of cash.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-P59HNxs/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepquest/i-P59HNxs/0/M/20141118121558-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a>
+<a href="http://agocs.smugmug.com/Other/Jeepquest/i-8G42Qf7/A" title=""><img src="http://agocs.smugmug.com/Other/Jeepquest/i-8G42Qf7/0/M/20141118121641-M.jpg" title="" alt=""></a></p>
+
+<p>The engine, on the other hand, is clean and all the pieces are there.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepquest/i-MQRWBR8/A" title=""><img src="http://agocs.smugmug.com/Other/Jeepquest/i-MQRWBR8/0/M/20141118121446-M.jpg" title="" alt=""></a></p>
+
+<p>The engine took a second to crank. The battery looked ok, but the terminals were a little corroded. That might be something to fix. Once it started up, however, it was really smooth; much better than the last Jeep I looked at.</p>
+
+<p>It does have the 3 speed automatic transmission, which is a down-side to me. The shifts (both of &lsquo;em) were smoother than I expected. It acutally feels quit nicely geared around town, but the engine sounds like it&rsquo;s working a little harder than I would like it to work on the highway. I imagine (traffic, even at noon on a Tuesday, was too heavy to get it up past 55) it would cruise around 65 mph at 3,000 RPM, which is okay. The cruise control is a little slow to react.</p>
+
+<p>I stopped in a neighborhood and tried to figure out the four wheel drive modes. The first time I tried it, I wound up stuck for a minute with the transfer case in neutral after coming out of 4 low with an Audi beeping at me to move. I fiddled with it for a second and finally found 2 high in time to move out of the way. I pulled over a little later, and the transfer case was a lot easier to work with.</p>
+
+<p>Fun fact: stepping on the brake hard enough to keep the car stopped with the transmission in drive and the transfer case  in 2 high will not keep the car stopped in 4 low. It&rsquo;s a little disconcerting just how much the Jeep wants to <em>go</em> when it&rsquo;s in 4 low.</p>
+
+<p>I will talk it over with Sabrina. I might show it to her, and offer the guy $5,000 hoping to settle in the $6,000 range. The mileage really doesn&rsquo;t scare me that much. It looks like the previous owner really cared for the vehicle, as evidenced by the lack of tacky mods and the Glacier National Park bumper sticker on the back.</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-18T21:11:28-06:00" pubdate data-updated="true">Nov 18<span>th</span>, 2014</time></div>
+	
+
+<div class="tags">
+
+	<a class='category' href='/blog/categories/jeepquest/'>jeepquest</a>, <a class='category' href='/blog/categories/jeeps/'>jeeps,</a>
+
+</div>
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014/11/16/jeep-quest-part-ii/">
+		
+			Jeep Quest Part II</a>
+	</h2>
+	<div class="entry-content">
+		<p>We saw a Jeep today! The first we&rsquo;ve seen as part of Jeep Quest. It was a 2000 Wrangler with 167,000 miles, owned by an older Russian man who was asking $6,500.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Misc/i-JHrhXJ7/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-JHrhXJ7/0/L/20141116122017-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>The guy said it had a five inch lift of unknown origin, and that his son was going to take the hard top off and put a soft top on. He&rsquo;d just replaced the cooling system and catalytic converter. There was some wacky bumper on the front. The body was in great condition, and there was very little rust on the frame. The interior was okay &mdash; the son had fitted some ridiculous CD player with DVD nonsense, and there were a few stray wires poking out from under the dash. We took it on a test drive around the block. Sabrina commented that she had forgotten how bouncy Jeeps were, but she liked it overall.</p>
+
+<p>Major issues:</p>
+
+<ul>
+<li>Price was way high</li>
+<li>Mileage was high</li>
+<li>Transmission kept popping out of second when the clutch was pressed in</li>
+<li>Lots of rough edges. It was a little bubba&rsquo;d. E.g. the battery was held down by a bungee cord.</li>
+<li>5 inch lift of unknown origin</li>
+<li>Check engine light</li>
+<li>Skid plate was welded in place because someone stripped a bolt at some point</li>
+<li>Rear tires were on their way out</li>
+</ul>
+
+
+<p>Finally, tell me if you can see what&rsquo;s wrong in this picture.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Misc/i-JfdCdK7/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-JfdCdK7/0/L/20141116121931-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>If you look at the valve cover, to the left of the big intake hose, that&rsquo;s where the oil fill cap should go.</p>
+
+<p>Scary stuff. I might have been motivated to buy for $3,500 if I was single, but I&rsquo;m looking for a quality vehicle instead of a project car. The search continues.</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-16T22:22:55-06:00" pubdate data-updated="true">Nov 16<span>th</span>, 2014</time></div>
+	
+
+<div class="tags">
+
+	<a class='category' href='/blog/categories/jeepquest/'>jeepquest</a>
+
+</div>
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014/11/16/jeep-quest-part-1/">
+		
+			Jeep-Quest Part 1</a>
+	</h2>
+	<div class="entry-content">
+		<p>When Sabrina and I moved to Chicago a year and a half ago, we sold both our cars. I&rsquo;m not saying that was a mistake, but I have to spend an hour each way on public transit for both hackerspaces and the radio station, and the grocery delivery people always manage to surprise you. We decided we wanted a reliable vehicle to see us through the next few years here in the Second City. I, being me, want something fun and a little ridiculous. I managed to talk Sabrina into a TJ Wrangler.</p>
+
+<p>What&rsquo;s a TJ Wrangler? Well, it&rsquo;s Chrysler&rsquo;s second stab at making a Jeep. Back in the mid-80s&hellip;</p>
+
+<p>Hang on, let me hit up Wikipedia here.</p>
+
+<p>Okay. Back in 1987, the American Motors Corporation was bought by Chrysler. AMC made the vernerable Jeep CJ-7, a small, light weight, leaf-sprung, two door SUV with four wheel drive. Chrysler took that and made it into a slightly larger vehicle with slightly more creature comforts and called it the Jeep Wrangler. The first generation Jeep Wrangler, known as the YJ, was sold from 1987 to 1995. Much like the CJ, it had leaf springs and a rudamentary suspension. It was a weird compromise between the bare bones CJ and a passenger car.</p>
+
+<p>I owned one, and it was an absolute blast.</p>
+
+<p><a href="http://agocs.smugmug.com/Other/Jeepin/i-6FnNkSr/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepin/i-6FnNkSr/0/M/5738657392_ae8017eed8_o-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a> <a href="http://agocs.smugmug.com/Other/Jeepin/i-2JBgkDb/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Jeepin/i-2JBgkDb/0/M/5738668746_7f921c5b59_o-M.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>It had a lot of problems, so we sold it.</p>
+
+<p>In 1996, Chrysler didn&rsquo;t make a Wrangler (okay, they did, but they were sold as 1997 models). Instead, they re-designed and re-tooled the plants to produce the second generation wrangler, the TJ. The TJ was a little bit larger than the YJ, and had coil springs in the front rather than leaf springs. This gave it better road manners without sacrificing too much offroadability. Under the hood, it came with the same choice of I4 or I6 engines, the same AX-5 or AX-15 transmissions, the same NP231 transfer case, and the same Dana 30 front and Dana 35 rear axle (later years got a different transmission, Rubicons got a different transfer case and rear axle, non-Rubicons could be specified with a different rear axle, blah blah blah).</p>
+
+<p>The thrust of all this is that TJs are sturdy vehicles, and intensely simple to work on. That I6 motor I mentioned makes an almost criminally low amount of power, but when the bombs drop, the last scrappy survivers will find perfect Jeep 4.0 engines still running. They&rsquo;re hard to kill.</p>
+
+<p>What am I looking for in a Jeep Wrangler? Well, sir:</p>
+
+<ul>
+<li>4.0 I6 &mdash; They&rsquo;ll last a good long time</li>
+<li>Manual transmission</li>
+<li>Reasonably unmodified. I&rsquo;m okay with a little bumper action or a tasteful lift, but I&rsquo;m not going to deal with a bubba&rsquo;d-to-hell Jeep like the last one I bought.</li>
+<li>2000 or later &mdash; This is a Sabrina requirement. I&rsquo;m OK with cars from the last century, but she isn&rsquo;t.</li>
+<li>150,000 miles or so &mdash; Even I get a little unnerved buying a car with 200,000 miles on an odometer, even though I know I&rsquo;ll probably see it some day.</li>
+<li>Cloth top</li>
+<li>Cruise control</li>
+<li>AC</li>
+<li>Minimal rust</li>
+<li>ABS</li>
+</ul>
+
+
+<p>I&rsquo;ll detail my journey to Wrangler-hood here. Jeep-quest! Here we go!</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-16T17:32:00-06:00" pubdate data-updated="true">Nov 16<span>th</span>, 2014</time></div>
+	
+
+<div class="tags">
+
+	<a class='category' href='/blog/categories/jeepquest/'>jeepquest</a>, <a class='category' href='/blog/categories/jeeps/'>jeeps,</a>, <a class='category' href='/blog/categories/trucks/'>trucks,</a>
+
+</div>
+
+
+	
+</div></article>
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2014/09/23/pictures-of-my-blog/">
+		
+			Pictures of My Blog</a>
+	</h2>
+	<div class="entry-content">
+		<p><a href="http://agocs.smugmug.com/Other/Misc/i-CMhRqgS/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-CMhRqgS/0/L/Screenshot_2014-09-23-10-33-13-L.png" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
+
+<p>&ldquo;Tell McHugh that I will tweet pictures of my blog as often as I want.&rdquo;</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-09-23T10:34:20-05:00" pubdate data-updated="true">Sep 23<span>rd</span>, 2014</time></div>
 	
 
 
@@ -828,16 +836,16 @@ $(document).ready(
     <article class="post">
 	<h2 class="title">
 		
-		<a href="/blog/2014/04/24/robot-finds-kitten-as-a-service/">
+		<a href="/blog/2014/09/22/surge-soup/">
 		
-			Robot Finds Kitten as a Service</a>
+			Surge Soup</a>
 	</h2>
 	<div class="entry-content">
-		<p>I put together a webservice that serves 700 items that are not kittens.</p>
+		<p>At Backstop, we name releases after soups. In order for something to be considered a soup, you must be able to find a picture of it in a bowl on the Internet. According, therefore,  to the rules at <a href="https://www.backstopsolutions.com/careers">Backstop Solutions Group</a>, this constitutes An Ice Cold Glass of Surge soup:</p>
 
-<p><a href="https://github.com/agocs/RobotFindsKittenServer">Github link</a></p>
+<p><a href="http://agocs.smugmug.com/Other/Misc/i-FSSp2mP/A" title="Photo & Video Sharing by SmugMug"><img src="http://agocs.smugmug.com/Other/Misc/i-FSSp2mP/0/L/20140922155242-L.jpg" title="Photo & Video Sharing by SmugMug" alt="Photo & Video Sharing by SmugMug"></a></p>
 
-<p><a href="http://agocs.org/robotfindskitten/non-kitten-item/">Watch it go</a></p>
+<p>If you like this and other kookyness, you should work at Backstop!</p>
 
 		
 		
@@ -857,107 +865,7 @@ $(document).ready(
   
 
 
-<time datetime="2014-04-24T16:12:37-05:00" pubdate data-updated="true">Apr 24<span>th</span>, 2014</time></div>
-	
-
-
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2014/04/15/migration/">
-		
-			Server Migration</a>
-	</h2>
-	<div class="entry-content">
-		<p>I know my site doesn&rsquo;t exactly have any dedicated watchers, but if anyone noticed a period of downtime earlier this week, it&rsquo;s because I was migrating from hosting on FatCow to hosting on a rented VPS through DigitalOcean. I also moved my domain registration from FatCow to Gandi.net. In this post, I plan to cover the hows, whys, and some lessons learned.</p>
-
-<p>I&rsquo;ll start with the juicy stuff.</p>
-
-<h1>Why?</h1>
-
-<p>There are a couple of reasons, but the root of it all is that I got fed up with FatCow. It&rsquo;s not clear how their pricing <strike>varies</strike> increases from year to year, and it&rsquo;s obnoxious how, every few months, I find myself signed up for another &ldquo;free trial&rdquo; of some service out of which I have to opt. I can roll my own solution for less money, and with greater control.</p>
-
-<h2>Why move away from FatCow?</h2>
-
-<p>Like I said above, money and annoyance. I have a few sites with FatCow, and the oldest is about to round the three year mark. When I signed up, I was offered a trial rate of around $30 for the first year. That&rsquo;s a very good deal. I barely used the site, but I ignored a few emails and, lo and behold, I found myself renewed automatically to the tune of $70-something. Okay, that&rsquo;s still not significantly more than $5/month. Pretty darn good for unlimited hosting, the fact that I&rsquo;m not using it notwithstanding. I turned off automatic renewal.</p>
-
-<p>A few months ago, I got a message saying that FatCow couldn&rsquo;t automatically renew that site because the card information I had stored was bad. I logged in, turned automatic renewal off again, and looked at the invoice &mdash; they were about to bill me $200-something for April 2014-April 2015! No way! That&rsquo;s way too much.</p>
-
-<p>I just renewed Agocs.org to the tune of $70-something with FatCow, but I decided it was in my best interests to break ties with that company completely, something I will be doing over the next few weeks.</p>
-
-<h2>Why Gandi.net?</h2>
-
-<p>Bluntly, they have a &ldquo;no bullshit&rdquo; policy. That, and they were recommended by a trusted coworker and friend, and they are a French corporation and French law meaningfully allows them to transfer ownership of &ldquo;Agocs.org&rdquo; over to me (most American registrars, I have been informed, retain ownership of the domain name and license its usage to you).</p>
-
-<p>The process of getting things set up with Gandi.net was a little rocky, as I will detail below, but they have a bunch of good help text and an extensive knowledge base. I was able to get up and running quickly and with minimal bugging of my more knowledgeable friends.</p>
-
-<h2>Why DigitalOcean?</h2>
-
-<p>I&rsquo;ve hosted a few VPSs with DigitalOcean before, and they are a joy to work with. I get full control of a Linux box (something I never got from FatCow), I can choose my web server (Nginx all the way) and database back-end (none for me please!), and set it up however I want. Write a script that uses rsync to publish new articles? Sure! Go nuts! I fought with FatCow for a while about that, and resorted to using FTP (which, once you&rsquo;ve started using rsync, sucks).</p>
-
-<p>Anyway, one small VPS costs me about five bones per month. Because I&rsquo;m just the tiniest bit clever, I can host several sites on the same VPS. They&rsquo;re all static content generated by Octopress, so it&rsquo;s not like I&rsquo;m going to outgrow the small server any time soon. It&rsquo;s <em>really</em> nice.</p>
-
-<h1>How it worked</h1>
-
-<p>The process was straightforward. I set up the VPS with DigitalOcean first, copied my site over there, installed Nginx, and got that configured. Then I requested a transfer code from FatCow (I suspect, but cannot confirm, that they drag their feet on this), and initiated the transfer through Gandi. The transfer cost me about $13, but that means Agocs.org is mine for an additional year. When the transfer was complete, I created a DNS Zone file through Gandi&rsquo;s web interface that points to my VPS.</p>
-
-<h1>Lessons learned</h1>
-
-<p>I made my fair share of mistakes, mostly in setting up the DNS Zonefile. My first attempt looked like this:</p>
-
-<pre><code>* 10800 IN A 162.243.76.63
-</code></pre>
-
-<p>www.agocs.org worked great, but no email and no plain ol&#8217; agocs.org. Email was more critical, so around midnight that night I changed it to this:</p>
-
-<pre><code>* 10800 IN A 162.243.76.63
-imap 10800 IN CNAME access.mail.gandi.net.
-pop 10800 IN CNAME access.mail.gandi.net.
-smtp 10800 IN CNAME relay.mail.gandi.net.
-@ 10800 IN MX 50 fb.mail.gandi.net.
-@ 10800 IN MX 10 spool.mail.gandi.net.
-</code></pre>
-
-<p>The lines below were cribbed from Gandi.net&rsquo;s default Zone file. <a href="&#109;&#x61;&#105;&#108;&#116;&#x6f;&#x3a;&#x63;&#104;&#x72;&#x69;&#115;&#64;&#97;&#103;&#111;&#x63;&#x73;&#x2e;&#x6f;&#x72;&#x67;">&#99;&#x68;&#x72;&#x69;&#115;&#x40;&#x61;&#103;&#111;&#x63;&#x73;&#46;&#x6f;&#114;&#103;</a> worked, but agocs.org did not. I did some research and then made the following change:</p>
-
-<pre><code>* 10800 IN A 162.243.76.63
-@ 10800 IN A 162.243.76.63
-imap 10800 IN CNAME access.mail.gandi.net.
-pop 10800 IN CNAME access.mail.gandi.net.
-smtp 10800 IN CNAME relay.mail.gandi.net.
-@ 10800 IN MX 50 fb.mail.gandi.net.
-@ 10800 IN MX 10 spool.mail.gandi.net.
-</code></pre>
-
-<p>I found out the * record points all _sub_domains to that IP address, but it does not point the root domain (i.e. agocs.org) there. The @ record points the root domain to that IP address.</p>
-
-<p>Finally, I noticed a problem with sent email. The last change I had to make was through Gmail, which was sending agocs.org traffic through an SMTP server run by FatCow. I&rsquo;m way too lazy to roll my own SMTP server, so I told Gmail to take care of it.</p>
-
-<p>There you have it.</p>
-
-		
-		
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-04-15T16:53:19-05:00" pubdate data-updated="true">Apr 15<span>th</span>, 2014</time></div>
+<time datetime="2014-09-22T15:56:58-05:00" pubdate data-updated="true">Sep 22<span>nd</span>, 2014</time></div>
 	
 
 
@@ -971,7 +879,7 @@ smtp 10800 IN CNAME relay.mail.gandi.net.
     
     <div class="center"><a href="/blog/archives">Blog Archives</a></div>
 </nav></div>
-	<footer id="footer" class="inner">Copyright &copy; 2014
+	<footer id="footer" class="inner">Copyright &copy; 2015
 
     Christopher Agocs
 

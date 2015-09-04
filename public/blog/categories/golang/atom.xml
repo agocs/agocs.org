@@ -4,7 +4,7 @@
   <title><![CDATA[Category: golang | Agocs]]></title>
   <link href="http://agocs.org/blog/categories/golang/atom.xml" rel="self"/>
   <link href="http://agocs.org/"/>
-  <updated>2014-09-19T11:08:57-05:00</updated>
+  <updated>2015-07-31T10:51:18-05:00</updated>
   <id>http://agocs.org/</id>
   <author>
     <name><![CDATA[Christopher Agocs]]></name>
@@ -12,6 +12,28 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Message Queues and Go]]></title>
+    <link href="http://agocs.org/blog/2014/12/09/message-queues-and-go/"/>
+    <updated>2014-12-09T08:50:50-06:00</updated>
+    <id>http://agocs.org/blog/2014/12/09/message-queues-and-go</id>
+    <content type="html"><![CDATA[<p>I gave a talk last night to the ChicaGoLang meetup entitled &ldquo;Message Queues and Go.&rdquo; It went over using a Message Queue Broker as a backbone to tie together a service oriented archetecture, with examples in Go.</p>
+
+<p>I put my slides here:</p>
+
+<p><a href="http://go-talks.appspot.com/github.com/agocs/golangRabbitMQ/rmq.slide#1">http://go-talks.appspot.com/github.com/agocs/golangRabbitMQ/rmq.slide#1</a></p>
+
+<p>and you can follow along with the video here:</p>
+
+<iframe width="854" height="510" src="http://agocs.org//www.youtube.com/embed/-S0-qgl8120?list=UUoGyPn-NIuAgkhlN7NAMhqw" frameborder="0" allowfullscreen></iframe>
+
+
+<p>The examples in the code will, unfortunately, not work because they rely on RabbitMQ running on a specific IP address / port.</p>
+
+<p>Let me know if there&rsquo;s anything I got wrong or missed!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[RabbitMQ best practices in Go]]></title>

@@ -36,6 +36,7 @@ Add to that
 
 - Garlic, 2 cloves finely chopped
 - Onion, 1 large or 2 small, chopped
+- Tomato paste, 1 can
 
 Put that aside. Get a decent sized pot, and put in one quart of cold water. Put two pounds of ground beef in there along with your spice mixture, then get your hands in there. You want to make a thin beef slurry. 
 

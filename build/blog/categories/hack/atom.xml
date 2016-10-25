@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: hack, | Agocs]]></title>
+  <link href="http://agocs.org/blog/categories/hack/atom.xml" rel="self"/>
+  <link href="http://agocs.org/"/>
+  <updated>2016-09-14T10:20:13-04:00</updated>
+  <id>http://agocs.org/</id>
+  <author>
+    <name><![CDATA[Christopher Agocs]]></name>
+    <email><![CDATA[chris@agocs.org]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Introducing Uluru]]></title>
+    <link href="http://agocs.org/blog/2015/08/20/introducing-uluru/"/>
+    <updated>2015-08-20T16:46:16-04:00</updated>
+    <id>http://agocs.org/blog/2015/08/20/introducing-uluru</id>
+    <content type="html"><![CDATA[<p><img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Uluru_Panorama.jpg" /></p>
+
+<p>I don&rsquo;t work for <a href="https://www.backstopsolutions.com/careers">Backstop</a> any more (but you should), but back when I did, we discovered we had no idea how long it took our users to load our tools. Hell, we couldn&rsquo;t even figure out how many clicks per month we had! I was working with New Relic trying to get a quote from them, and the best I could do was 2 million plus or minus 800 thousand. We had insight into how long it took our servers to respond to requests, but no thought was given to DNS, loading outside resources, rendering DOM, etc.</p>
+
+<p>We tried New Relic Browser, but that failed for two reasons. First, something in the few-hundred-kilobytes of minified JavaScript was conflicting with something in our JavaScript in a way that broke automated testing. Second, on a sales call, we determined that Browser really wasn&rsquo;t going to tell us the information we wanted to know. It&rsquo;s a good tool, for sure, but it didn&rsquo;t expose the depth of data we wanted.</p>
+
+<p><a href="https://twitter.com/alarmingcow">Colin</a> found a tool called <a href="https://github.com/yahoo/boomerang">Yahoo Boomerang</a> which seemed to do what we needed. It would collect metrics on how long it took the page, and various resources on the page, to load, and it would report those data back to a server over here. Simple, right?</p>
+
+<p>I took two issues with Boomerang. First, it again broke our testing. Second, it used some ridiculous scheme of a GET request with URL parameters inside of an invisible iframe to get data back to the server without any cross-site request issues. This seemed entirely too complicated, and simplicity was one of my overarching goals. I decided to roll my own.</p>
+
+<p>I was sitting in the audience at <a href="http://monitorama.com/">Monitorama</a>, and one of the speakers mentioned logging how long clients spent loading pages. I asked him about it, and he mentioned something in Vanilla JavaScript that allowed for that. I did some research, found out about <code>window.performance.Timing</code>, and thus Uluru was born.</p>
+
+<p>The name, incidentally, came from back when I was experimenting with Boomerang. I needed a server to throw Boomerang data at, so I picked the famous Australian sandstone formation Uluru.</p>
+
+<h2>Design goals</h2>
+
+<p>There exist other solutions, commercial and open source, for recording and reporting on browser telemetry. It was found, however, that these solutions were significantly complex, and in many cases interfered with JavaScript we were already using, causing JavaScript errors and preventing the browser from rendering UI elements. Therefore, the design goals of Uluru became:</p>
+
+<ul>
+<li>Minimalism: Uluru.js is 47 lines of whitespace-heavy JavaScript. It should be extremely readable.</li>
+<li>Light weight: When minified, Uluru.js squishes down under 500 bytes.</li>
+<li>Speed: Uluru.js has no dependencies on other JS libraries.</li>
+<li>No hacks: Uluru.js makes a single POST request to a remote server. It does not e.g. cram metrics into query parameters and make a series of requests GETting hidden images or iframes.</li>
+</ul>
+
+
+<h2>Implementation</h2>
+
+<h3>Client side</h3>
+
+<p>Uluru is a function that, when called, gets the time since navigation started and some other metrics, and sends those to an endpoint. We&rsquo;ve set it up such that <code>uluru(endpoint)</code> is called when <code>window.onload</code> fires, under the assumption that most of our product is useful by that point.</p>
+
+<p>Uluru collects the following data:</p>
+
+<ul>
+<li>url: the <code>window.location.href</code></li>
+<li>connectionTime: the time (ms since UNIX epoch) the connection was initiated.</li>
+<li>connectionDelta: the time spent establishing a connection to the server</li>
+<li>firstByte: the time spent waiting for the server to respond with the first byte of data</li>
+<li>responseDelta: the time the server spent sending a response to the client</li>
+<li>loadTime: time between the <code>navigationStart</code> and <code>window.onload</code> events.</li>
+</ul>
+
+
+<p>It also calls <code>window.performance.getEntries()</code> to provide specific timing on every resource (script, image, stylesheet, etc.) included in the page load.</p>
+
+<h3>Server side</h3>
+
+<p>Uluru rolls all the data it collects up into one PUT request. The easiest way to collect Uluru data is to include a data collection REST endpoint in your existent web application (or, if you&rsquo;re feeling clever, make your web proxy route Uluru requests to a specific Uluru logging server.</p>
+
+<p>Alternatively, you could set the <code>Access-Control-Allow-Origin</code> header to allow the browser to make POST requests to a separate server you&rsquo;ve spun up for this purpose.</p>
+
+<p>Either way, what we&rsquo;ve wound up doing is writing the Uluru data out to Splunk, and aggregating it there in interesting ways.</p>
+
+<h2>Data</h2>
+
+<p>Here&rsquo;s some of the data we were able to collect!</p>
+
+<h3>Page loads and Appdexes</h3>
+
+<p><a href="https://agocs.smugmug.com/Other/Misc/i-6PnMZv4/A"><img src="https://agocs.smugmug.com/Other/Misc/i-6PnMZv4/0/M/Screen%20Shot%202015-09-04%20at%201.57.31%20PM-M.png" alt="Photo &amp; Video Sharing by SmugMug"></a></p>
+
+<p>One neat thing we didn&rsquo;t have before is an easy way to count how many page loads our system saw, how many unique users we had actively using our system, or how many clients were logged in on a given day. When you start making changes to system performance, you start thinking about things differently when you consider the 1ms wait you just removed will be multiplied by 73,000 over the course of a day.</p>
+
+<p>Appdex is an interesting measure of system speed. You select a goal speed (2 seconds on the left, 4 seconds on the right), and you count page loads. Every page load that took under the goal speed counts for 1. Every load that took greater than the goal speed but under twice the goal speed counts for .5, and the rest count for 0. You divide the counted page loads by the total page loads, and you get a number between 0 and 1 that gives you a decent metric for how happy or sad your users are.</p>
+
+<p>One really interesting thing we saw from this, we found by looking at individual clients. One of our clients had a significantly lower Appdex than the rest. We did some digging, and found that a condition in their data made every JSP load a huge number of records from the database to generate a list they never used. We disabled that for them, and they got much happier without ever realizing they were sad!</p>
+
+<h3>Speed breakdown</h3>
+
+<p><a href="https://agocs.smugmug.com/Other/Misc/i-trpgpLZ/A"><img src="https://agocs.smugmug.com/Other/Misc/i-trpgpLZ/0/M/Screen%20Shot%202015-09-04%20at%201.58.09%20PM-M.png" alt="Photo &amp; Video Sharing by SmugMug"></a></p>
+
+<p>This is a bit more boring, but it lets us know how many page loads are fast, acceptable, slow, or super slow. Comparing, e.g., last hour with last 7 days lets us see any system wide problems before our clients call in.</p>
+
+<h3>Page load histograms</h3>
+
+<p><a href="https://agocs.smugmug.com/Other/Misc/i-sh6FZWC/A"><img src="https://agocs.smugmug.com/Other/Misc/i-sh6FZWC/0/M/Screen%20Shot%202015-09-04%20at%201.59.35%20PM-M.png" alt="Photo &amp; Video Sharing by SmugMug"></a></p>
+
+<p>These let us know at a glance how our page loads are distributed. We could, for example, notice a bi-modal distribution. It wouldn&rsquo;t affect our average or median scores, but it would be indicative of something fishy.</p>
+
+<p>I once noticed a particular user sending back negative page load speeds. I investigated it for a little bit and decided it was just one of those weird things that happen when you rely on multiple sources of time.</p>
+
+<h3>Slow pages</h3>
+
+<p><a href="https://agocs.smugmug.com/Other/Misc/i-X5dKdQs/A"><img src="https://agocs.smugmug.com/Other/Misc/i-X5dKdQs/0/M/Screen%20Shot%202015-09-04%20at%201.59.45%20PM-M.png" alt="Photo &amp; Video Sharing by SmugMug"></a></p>
+
+<p>This report gives us some neat insight into what&rsquo;s been taking a long time to load. You look at each one, make sure it makes sense, and then use this graph to help prioritize your projects.</p>
+
+<h3>Time sinks</h3>
+
+<p><a href="https://agocs.smugmug.com/Other/Misc/i-RJRsk3M/A"><img src="https://agocs.smugmug.com/Other/Misc/i-RJRsk3M/0/M/Screen%20Shot%202015-09-04%20at%201.59.53%20PM-M.png" alt="Photo &amp; Video Sharing by SmugMug"></a></p>
+
+<p>Likewise, just counting the total amount of time sunk into a resource is helpful. You might (much like we do) have a page that clients hit all the time. It might load in under two seconds, but if you can shave 10 % off of that, you&rsquo;re saving 20 hours per week aggregated across all of your users.</p>
+
+<p>You can get a lot of really interesting data from visualizations like this. Use these to help justify speed projects.</p>
+
+<h2>Further directions</h2>
+
+<p>Currently, the Uluru project includes some stub code for a generic REST endpoint. I want to flush this out into something that writes logs for splunkd or logstash, or forwards data to services like Sensu or Riemann.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[AGOX Connectors]]></title>
+    <link href="http://agocs.org/blog/2014/09/19/agox-connectors/"/>
+    <updated>2014-09-19T11:23:41-04:00</updated>
+    <id>http://agocs.org/blog/2014/09/19/agox-connectors</id>
+    <content type="html"><![CDATA[<h3>Or, how we hacked reality</h3>
+
+<p>This is an eight-pin AGOX connector:</p>
+
+<p><img src="http://i.imgur.com/NHrH5hOl.jpg"></p>
+
+<p>In September of 2008, I was a student at the <a href="http://www.gatech.edu">North Avenue Trade School</a> and heavily involved in the <a href="http://www.wrek.org">WREK</a> radio station. One of my good friends at the time was <a href="http://centrisian.com/">Robert Wright</a>. My &ldquo;initials&rdquo; (how we logged in, signed up for shifts, etc.) at the radio station were &ldquo;AGOX&rdquo;, and I signed all my emails that way. One afternoon, Robert pointed me toward the Wikipedia Talk page for USB: specifically at a section called <a href="http://en.wikipedia.org/wiki/Talk:USB/Archive_4#Mystery_micro_plug">Mystery Micro Plug</a>. At the bottom, he wrote:</p>
+
+<blockquote><p>Based on personal knowledge, and having worked in the field for a few years, the &lsquo;Mystery Plug&rsquo; is internally named the &lsquo;Agox connector&rsquo; when used in combination with digital cameras. We refer to them this way because of the gentleman with whom I worked. 128.61.120.190 (talk) 22:49, 23 September 2008 (UTC)</p></blockquote>
+
+<p>I thought it was funny, so I replied.</p>
+
+<blockquote><p>I think I remember seeing it called the &lsquo;Agox Connector&rsquo; in Nikon documentation somewhere. I always wondered why. 128.61.69.123 (talk) 22:56, 23 September 2008 (UTC)</p></blockquote>
+
+<p>It would have died at this point if another Wikipedia editor hadn&rsquo;t gotten involved.</p>
+
+<blockquote><p>Hmmm&hellip; very interesting. Do you have a reference for it anywhere??? ǝɹʎℲxoɯ (contrib) 06:33, 24 September 2008 (UTC)</p></blockquote>
+
+<p>Well&hellip; One good lie begets another. Rob said:</p>
+
+<blockquote><p>I&rsquo;m no longer working there, but I could possibly try to get some documents from people who still work there. 128.61.120.190 (talk) 09:32, 24 September 2008 (UTC)</p></blockquote>
+
+<p>And then, a few days later, he said:</p>
+
+<blockquote><p>So, after having asked around, I&rsquo;ve learned that the connector&rsquo;s internal name of &lsquo;Agox&rsquo; is on some documentation that we haven&rsquo;t released to the public yet. The name is perfectly fine to use for the article, but the Nikon documents cannot be released. If I could cite them here, I would, but alas, I am still bound not to release the information behind this. 24.98.65.137 (talk) 04:48, 30 September 2008 (UTC)</p></blockquote>
+
+<p>Finally, about a month later, I came up with the most ridiculous thing I could imagine.</p>
+
+<blockquote><p>It stands for Asynchronous Gamma-Object Transfer (x=trans). In Nikon&rsquo;s logical model, the alpha object acts as a server, the beta object acts as a client, and data that flows between the two are considered gamma objects. There are delta and epsilon objects as well, but those are too small to get into. 128.61.69.123 (talk) 23:27, 21 October 2008 (UTC)</p></blockquote>
+
+<p>We left it at that. A few months later, Rob pointed me back at the main USB article. I scrolled through and saw this:</p>
+
+<p><img src="http://i.imgur.com/usgXmpCl.png"></p>
+
+<p>We&rsquo;d done it! Someone took our lies and made them reality! It didn&rsquo;t stop there. You could find Chinese companies selling AGOX cables and AGOX connectors, people mentioned AGOX connectors on forums, one guy even wrote a blog post about an AGOX to regular USB converter he made.</p>
+
+<p>All good things must come to an end, and, rightly so, AGOX Connector got edited away. Wikipedia currently calls it a &ldquo;UC-E6 proprietary (non-USB) plug&rdquo;, but, in my heart of hearts, I know what it really is.</p>
+]]></content>
+  </entry>
+  
+</feed>

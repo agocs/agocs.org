@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: talks, | Agocs]]></title>
+  <link href="http://agocs.org/blog/categories/talks/atom.xml" rel="self"/>
+  <link href="http://agocs.org/"/>
+  <updated>2016-09-14T10:18:57-04:00</updated>
+  <id>http://agocs.org/</id>
+  <author>
+    <name><![CDATA[Christopher Agocs]]></name>
+    <email><![CDATA[chris@agocs.org]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Golang Philly talk]]></title>
+    <link href="http://agocs.org/blog/2016/09/14/golang-philly-talk/"/>
+    <updated>2016-09-14T10:15:28-04:00</updated>
+    <id>http://agocs.org/blog/2016/09/14/golang-philly-talk</id>
+    <content type="html"><![CDATA[<p>I gave a talk at Golang Philly last night! <a href="//assets/Golang_Philly_Home_Automation.pdf">Here are some slides.</a></p>
+]]></content>
+  </entry>
+  
+</feed>
